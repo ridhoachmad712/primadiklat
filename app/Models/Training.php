@@ -34,7 +34,7 @@ class Training extends Model
     ];
 
     protected $fillable = [
-        'category_id', 'type', 'title', 'slug', 'excerpt', 'description', 'materials', 'target_participants',
+        'category_id', 'topic_id', 'schedule_date_id', 'venue_id', 'type', 'title', 'slug', 'excerpt', 'description', 'materials', 'target_participants',
         'thumbnail', 'brochure', 'start_date', 'end_date', 'registration_deadline', 'method', 'city', 'venue',
         'venue_address', 'quota', 'prices', 'facilities', 'status', 'is_featured', 'registration_open',
         'meta_title', 'meta_description',
@@ -53,6 +53,63 @@ class Training extends Model
     public function category(): BelongsTo
     {
         return $this->belongsTo(Category::class);
+    }
+
+    public function topic(): BelongsTo
+    {
+        return $this->belongsTo(Topic::class);
+    }
+
+    public function scheduleDate(): BelongsTo
+    {
+        return $this->belongsTo(ScheduleDate::class);
+    }
+
+    /** Named "hotel" because the legacy `venue` column holds the venue name as text. */
+    public function hotel(): BelongsTo
+    {
+        return $this->belongsTo(Venue::class, 'venue_id');
+    }
+
+    /**
+     * The class for a topic (or a custom topic title) on a schedule date at a venue.
+     * Created on first registration; custom topics stay draft until an admin confirms them.
+     */
+    public static function forSelection(Topic|string $topic, ScheduleDate $date, Venue $venue): self
+    {
+        $isCustom = is_string($topic);
+        $title = $isCustom ? trim($topic) : $topic->title;
+
+        $existing = static::where('schedule_date_id', $date->id)->where('venue_id', $venue->id)
+            ->when($isCustom, fn ($q) => $q->whereNull('topic_id')->where('title', $title), fn ($q) => $q->where('topic_id', $topic->id))
+            ->first();
+        if ($existing) {
+            return $existing;
+        }
+
+        return static::create([
+            'topic_id' => $isCustom ? null : $topic->id,
+            'schedule_date_id' => $date->id,
+            'venue_id' => $venue->id,
+            'category_id' => $isCustom ? null : $topic->category_id,
+            'type' => $isCustom ? 'bimtek' : $topic->type,
+            'title' => $title,
+            'slug' => static::uniqueSlug($title.' '.$venue->city.' '.$date->start_date->format('Y m d')),
+            'excerpt' => $isCustom ? 'Tema usulan peserta, menunggu konfirmasi admin.' : $topic->excerpt,
+            'description' => $isCustom ? null : $topic->description,
+            'materials' => $isCustom ? null : $topic->materials,
+            'target_participants' => $isCustom ? null : $topic->target_participants,
+            'thumbnail' => $isCustom ? null : $topic->thumbnail,
+            'start_date' => $date->start_date,
+            'end_date' => $date->end_date,
+            'registration_deadline' => $date->deadline,
+            'method' => 'offline',
+            'city' => $venue->city,
+            'venue' => $venue->name,
+            'venue_address' => $venue->address,
+            'status' => $isCustom ? 'draft' : 'published',
+            'registration_open' => true,
+        ]);
     }
 
     public function registrations(): HasMany

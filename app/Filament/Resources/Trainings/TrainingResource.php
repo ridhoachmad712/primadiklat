@@ -56,7 +56,7 @@ class TrainingResource extends Resource
 
     protected static string|UnitEnum|null $navigationGroup = 'Kegiatan';
 
-    protected static ?string $navigationLabel = 'Bimtek & Diklat';
+    protected static ?string $navigationLabel = 'Kelas Kegiatan';
 
     protected static ?string $modelLabel = 'kegiatan';
 

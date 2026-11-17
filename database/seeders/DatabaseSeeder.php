@@ -178,5 +178,7 @@ class DatabaseSeeder extends Seeder
         foreach ($pages as $slug => [$title, $content]) {
             Page::updateOrCreate(['slug' => $slug], ['title' => $title, 'content' => $content]);
         }
+
+        $this->call(Schedule2027Seeder::class);
     }
 }

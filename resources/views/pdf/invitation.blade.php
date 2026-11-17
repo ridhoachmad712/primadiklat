@@ -71,6 +71,11 @@
 </table>
 @endif
 
+@if(! $t->prices)
+<h3>Kontribusi Peserta</h3>
+<p style="margin: 0 0 10px;">{{ setting('price_notice') }} WhatsApp: {{ setting('whatsapp') }}.</p>
+@endif
+
 @if($t->facilities)
 <p style="margin: 0;"><strong>Fasilitas:</strong> {{ implode(', ', $t->facilities) }}.</p>
 @endif

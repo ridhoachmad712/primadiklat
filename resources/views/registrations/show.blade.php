@@ -62,20 +62,39 @@
                         @endforeach
                     </tbody>
                     <tfoot>
-                        <tr class="border-t border-slate-200"><td colspan="3" class="pt-3 font-semibold text-slate-900">Total tagihan</td><td class="pt-3 text-right text-lg font-bold text-brand-700">{{ rupiah($inv->amount) }}</td></tr>
+                        <tr class="border-t border-slate-200"><td colspan="3" class="pt-3 font-semibold text-slate-900">Total tagihan</td>
+                            <td class="pt-3 text-right {{ $inv->amount > 0 ? 'text-lg font-bold text-brand-700' : 'text-sm font-semibold text-amber-700' }}">{{ $inv->amount > 0 ? rupiah($inv->amount) : 'Dikonfirmasi admin' }}</td></tr>
                     </tfoot>
                 </table>
             </div>
         </div>
 
         <div class="flex flex-wrap gap-2 border-t border-slate-100 p-6">
-            <a href="{{ route('registrations.invoice', $r->code) }}" target="_blank" class="btn btn-outline"><x-heroicon-o-document-text class="size-4"/> Invoice</a>
+            @if($inv->amount > 0)
+                <a href="{{ route('registrations.invoice', $r->code) }}" target="_blank" class="btn btn-outline"><x-heroicon-o-document-text class="size-4"/> Invoice</a>
+            @endif
             @if($inv->status === 'paid')
                 <a href="{{ route('registrations.receipt', $r->code) }}" target="_blank" class="btn btn-primary"><x-heroicon-o-receipt-percent class="size-4"/> Kuitansi</a>
             @endif
-            <a href="{{ route('trainings.invitation', $t) }}" target="_blank" class="btn btn-outline"><x-heroicon-o-envelope-open class="size-4"/> Surat Undangan</a>
+            @if($t->status === 'published')
+                <a href="{{ route('trainings.invitation', $t) }}" target="_blank" class="btn btn-outline"><x-heroicon-o-envelope-open class="size-4"/> Surat Undangan</a>
+            @else
+                <p class="text-sm text-slate-500">Tema usulan Anda sedang ditinjau admin. Surat undangan tersedia setelah tema dikonfirmasi.</p>
+            @endif
         </div>
     </div>
+
+    {{-- Price not set yet: admin follows up via WhatsApp --}}
+    @if($inv->amount <= 0 && in_array($inv->status, ['unpaid', 'waiting'], true))
+    <div class="card mt-6 flex flex-col gap-4 border-amber-200 bg-amber-50/60 p-6 sm:flex-row sm:items-center">
+        <x-heroicon-o-chat-bubble-left-right class="size-9 shrink-0 text-amber-600"/>
+        <div class="flex-1 text-sm text-amber-900">
+            <p class="font-semibold">Menunggu informasi biaya</p>
+            <p class="mt-1">{{ setting('price_notice') }} Anda juga dapat menghubungi admin lebih dulu.</p>
+        </div>
+        <a href="{{ wa_link($wa."\n\nMohon info biaya kontribusinya. Terima kasih.") }}" target="_blank" rel="noopener" class="btn btn-wa shrink-0">Tanya Biaya via WA</a>
+    </div>
+    @endif
 
     {{-- Payment --}}
     @if($inv->amount > 0 && $inv->status !== 'cancelled')
@@ -132,6 +151,9 @@
         <p class="font-semibold">Langkah selanjutnya</p>
         <ol class="mt-2 list-decimal space-y-1 pl-5">
             <li>Simpan tautan halaman ini atau kode pendaftaran. Konfirmasi juga dikirim ke email kontak.</li>
+            @if($inv->amount <= 0)
+                <li>Admin akan menghubungi kontak utama melalui WhatsApp untuk menyampaikan biaya kontribusi. Setelah itu tagihan (invoice) muncul di halaman ini dan dikirim ke email.</li>
+            @endif
             <li>Unduh surat undangan dan invoice untuk proses SPPD/pencairan di instansi Anda.</li>
             <li>Lakukan pembayaran lalu unggah buktinya di halaman ini. Kuitansi resmi terbit setelah diverifikasi.</li>
             <li>Setelah kegiatan selesai, sertifikat dapat diunduh di menu <a href="{{ route('certificates.index') }}" class="font-semibold underline">Cek Sertifikat</a>.</li>

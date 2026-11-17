@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Category;
+use App\Models\ScheduleDate;
 use App\Models\Training;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
@@ -56,14 +57,21 @@ class TrainingController extends Controller
         $gridStart = $month->copy()->startOfWeek(Carbon::MONDAY);
         $gridEnd = $month->copy()->endOfMonth()->endOfWeek(Carbon::SUNDAY);
 
+        // Classes formed from the open schedule are represented by their date slot instead.
         $trainings = Training::published()
+            ->whereNull('schedule_date_id')
             ->with('category')
             ->whereDate('start_date', '<=', $gridEnd)
             ->whereDate('end_date', '>=', $gridStart)
             ->orderBy('start_date')
             ->get();
 
-        return view('trainings.calendar', compact('month', 'gridStart', 'gridEnd', 'trainings'));
+        $slots = ScheduleDate::active()
+            ->whereDate('start_date', '<=', $gridEnd)
+            ->whereDate('end_date', '>=', $gridStart)
+            ->get();
+
+        return view('trainings.calendar', compact('month', 'gridStart', 'gridEnd', 'trainings', 'slots'));
     }
 
     public function show(Training $training)

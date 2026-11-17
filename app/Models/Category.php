@@ -21,6 +21,11 @@ class Category extends Model
         return $this->hasMany(Training::class);
     }
 
+    public function topics(): HasMany
+    {
+        return $this->hasMany(Topic::class);
+    }
+
     public function scopeActive($query)
     {
         return $query->where('is_active', true)->orderBy('sort')->orderBy('name');

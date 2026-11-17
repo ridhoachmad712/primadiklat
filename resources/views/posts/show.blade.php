@@ -47,7 +47,7 @@
                 <p class="font-bold text-white">Ingin mendalami topik ini?</p>
                 <p class="mt-1 text-sm text-brand-100">Lihat jadwal bimtek & diklat terbaru dari Prima Diklat.</p>
             </div>
-            <a href="{{ route('trainings.index') }}" class="btn mt-4 shrink-0 bg-white text-brand-700 hover:bg-brand-50 sm:mt-0">Lihat Jadwal</a>
+            <a href="{{ route('schedule.index') }}" class="btn mt-4 shrink-0 bg-white text-brand-700 hover:bg-brand-50 sm:mt-0">Lihat Jadwal</a>
         </div>
     </div>
 </article>

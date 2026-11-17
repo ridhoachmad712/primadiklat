@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Mail\InvoiceReady;
 use App\Mail\PaymentVerified;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -138,6 +139,29 @@ class Invoice extends Model
                 Log::warning('Payment mail failed: '.$e->getMessage());
             }
         }
+    }
+
+    /** Apply one per-participant price to the whole batch (used after the WhatsApp price follow-up). */
+    public function setPrice(int $price, ?string $package = null, bool $notify = true): void
+    {
+        $this->registrations()->where('status', '!=', 'cancelled')
+            ->update(array_filter(['price' => $price, 'package' => $package], fn ($v) => $v !== null));
+        $this->recalculate();
+
+        if ($notify && $this->amount > 0) {
+            try {
+                Mail::to($this->contact_email)->send(new InvoiceReady($this->fresh()));
+            } catch (\Throwable $e) {
+                Log::warning('Invoice mail failed: '.$e->getMessage());
+            }
+        }
+    }
+
+    public function getContactPhoneWaAttribute(): string
+    {
+        $n = preg_replace('/\D/', '', (string) $this->contact_phone);
+
+        return str_starts_with($n, '0') ? '62'.substr($n, 1) : $n;
     }
 
     public function rejectProof(string $reason): void

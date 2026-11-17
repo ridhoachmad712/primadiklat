@@ -1,66 +1,82 @@
 @extends('layouts.app')
 
 @section('content')
-{{-- HERO --}}
+{{-- HERO: quick pick tema + tanggal + kota --}}
 <section class="relative overflow-hidden">
     <div class="pointer-events-none absolute inset-0 bg-[radial-gradient(50rem_30rem_at_90%_-20%,rgba(29,78,216,0.14),transparent),radial-gradient(30rem_20rem_at_0%_110%,rgba(245,158,11,0.10),transparent)]"></div>
-    <div class="container-x relative grid items-center gap-12 py-14 lg:grid-cols-12 lg:py-24">
+    <div class="container-x relative grid items-center gap-12 py-14 lg:grid-cols-12 lg:py-20">
         <div class="lg:col-span-7">
             <span class="inline-flex items-center gap-2 rounded-full border border-brand-100 bg-white px-3 py-1 text-xs font-semibold text-brand-700">
                 <span class="relative flex size-2"><span class="absolute inline-flex size-full animate-ping rounded-full bg-emerald-400 opacity-75"></span><span class="relative inline-flex size-2 rounded-full bg-emerald-500"></span></span>
-                {{ \App\Models\Training::upcoming()->count() }} jadwal kegiatan tersedia
+                Pendaftaran dibuka · {{ $openDates->count() }} jadwal di {{ $cities->count() }} kota
             </span>
             <h1 class="mt-5 text-4xl leading-[1.1] font-extrabold sm:text-5xl lg:text-[3.4rem]">{{ setting('hero_title') }}</h1>
             <p class="mt-5 max-w-xl text-lg text-slate-600">{{ setting('hero_subtitle') }}</p>
 
-            <form action="{{ route('trainings.index') }}" class="mt-8 flex max-w-xl flex-col gap-2 rounded-2xl border border-slate-200 bg-white p-2 shadow-xl shadow-slate-200/50 sm:flex-row">
-                <label class="flex flex-1 items-center gap-2 px-3">
-                    <x-heroicon-o-magnifying-glass class="size-5 text-slate-400"/>
-                    <span class="sr-only">Cari kegiatan</span>
-                    <input type="search" name="q" placeholder="Cari topik bimtek atau diklat…" class="w-full border-0 bg-transparent py-2.5 text-sm outline-none placeholder:text-slate-400">
-                </label>
-                <select name="kategori" class="rounded-xl border-0 bg-slate-50 px-3 py-2.5 text-sm text-slate-600 outline-none sm:w-48" aria-label="Kategori">
-                    <option value="">Semua kategori</option>
-                    @foreach($categories as $c)<option value="{{ $c->slug }}">{{ $c->name }}</option>@endforeach
+            <form action="{{ route('register.create') }}" method="GET" class="mt-8 grid max-w-2xl gap-2 rounded-2xl border border-slate-200 bg-white p-2 shadow-xl shadow-slate-200/50 sm:grid-cols-2">
+                <label class="sr-only" for="hero-tema">Tema</label>
+                <select id="hero-tema" name="tema" class="min-w-0 rounded-xl border-0 bg-slate-50 px-3 py-3 text-sm text-slate-700 outline-none sm:col-span-2">
+                    <option value="">Semua tema</option>
+                    @foreach($topics as $tp)<option value="{{ $tp->slug }}">{{ \Illuminate\Support\Str::limit($tp->title, 60) }}</option>@endforeach
                 </select>
-                <button class="btn btn-primary">Cari Jadwal</button>
+                <label class="sr-only" for="hero-tanggal">Tanggal</label>
+                <select id="hero-tanggal" name="tanggal" class="min-w-0 rounded-xl border-0 bg-slate-50 px-3 py-3 text-sm text-slate-700 outline-none">
+                    <option value="">Tanggal</option>
+                    @foreach($openDates->groupBy(fn ($d) => $d->start_date->translatedFormat('F Y')) as $m => $items)
+                        <optgroup label="{{ $m }}">@foreach($items as $d)<option value="{{ $d->start_date->toDateString() }}">{{ $d->label }}</option>@endforeach</optgroup>
+                    @endforeach
+                </select>
+                <label class="sr-only" for="hero-kota">Kota</label>
+                <select id="hero-kota" name="hotel" class="min-w-0 rounded-xl border-0 bg-slate-50 px-3 py-3 text-sm text-slate-700 outline-none">
+                    <option value="">Kota</option>
+                    @foreach($cities as $city => $items)
+                        <optgroup label="{{ $city }}">@foreach($items as $v)<option value="{{ $v->id }}">{{ $city }} · {{ $v->name }}</option>@endforeach</optgroup>
+                    @endforeach
+                </select>
+                <button class="btn btn-primary sm:col-span-2">Lanjut Daftar</button>
             </form>
 
             <div class="mt-6 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-slate-500">
-                <span class="inline-flex items-center gap-1.5"><x-heroicon-s-check-badge class="size-4 text-brand-600"/> Sertifikat resmi</span>
-                <span class="inline-flex items-center gap-1.5"><x-heroicon-s-check-badge class="size-4 text-brand-600"/> Narasumber praktisi</span>
+                <span class="inline-flex items-center gap-1.5"><x-heroicon-s-check-badge class="size-4 text-brand-600"/> Bebas pilih tema, tanggal & kota</span>
+                <span class="inline-flex items-center gap-1.5"><x-heroicon-s-check-badge class="size-4 text-brand-600"/> Daftar rombongan sekaligus</span>
                 <span class="inline-flex items-center gap-1.5"><x-heroicon-s-check-badge class="size-4 text-brand-600"/> Undangan resmi untuk SPPD</span>
             </div>
         </div>
 
-        @if($featured)
         <div class="lg:col-span-5">
             <div class="relative">
                 <div class="absolute -inset-4 -z-10 rotate-2 rounded-[2rem] bg-brand-100/50"></div>
-                <a href="{{ route('trainings.show', $featured) }}" class="group block overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-2xl shadow-slate-300/40">
-                    <div class="aspect-[16/9] overflow-hidden">
-                        @if($featured->thumbnail_url)
-                            <img src="{{ $featured->thumbnail_url }}" alt="" class="size-full object-cover">
-                        @else
-                            <x-placeholder-cover :seed="$featured->id" :label="'Unggulan · '.$featured->type_label"/>
-                        @endif
-                    </div>
-                    <div class="p-6">
-                        <p class="text-xs font-semibold text-brand-700">{{ $featured->category?->name }}</p>
-                        <h2 class="mt-1.5 text-lg leading-snug font-bold group-hover:text-brand-700">{{ $featured->title }}</h2>
-                        <div class="mt-4 grid grid-cols-2 gap-3 text-sm">
-                            <div class="rounded-xl bg-slate-50 p-3"><p class="text-[11px] text-slate-400">Tanggal</p><p class="font-semibold text-slate-800">{{ $featured->date_range }}</p></div>
-                            <div class="rounded-xl bg-slate-50 p-3"><p class="text-[11px] text-slate-400">Lokasi</p><p class="truncate font-semibold text-slate-800">{{ $featured->method === 'online' ? 'Online' : $featured->city }}</p></div>
+                <div class="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-2xl shadow-slate-300/40">
+                    <div class="flex items-center justify-between border-b border-slate-100 px-6 py-4">
+                        <div>
+                            <p class="text-xs font-semibold text-brand-700">Jadwal Terdekat</p>
+                            <p class="font-bold text-slate-900">Bimtek 2 hari, setiap pekan</p>
                         </div>
-                        <div class="mt-5 flex items-center justify-between">
-                            <span class="text-sm text-slate-500">@if($featured->lowest_price)Mulai <strong class="text-slate-900">{{ rupiah($featured->lowest_price) }}</strong>@endif</span>
-                            <span class="btn btn-primary !py-2">Lihat Detail</span>
-                        </div>
+                        <x-heroicon-o-calendar-days class="size-7 text-slate-300"/>
                     </div>
-                </a>
+                    <ul class="divide-y divide-slate-100">
+                        @forelse($openDates->take(5) as $d)
+                            <li>
+                                <a href="{{ route('register.create', ['tanggal' => $d->start_date->toDateString()]) }}" class="group flex items-center gap-4 px-6 py-3.5 hover:bg-slate-50">
+                                    <span class="flex w-12 shrink-0 flex-col items-center rounded-xl border border-slate-200 py-1">
+                                        <span class="text-lg leading-none font-extrabold text-slate-900">{{ $d->start_date->format('d') }}</span>
+                                        <span class="text-[10px] font-semibold text-brand-600 uppercase">{{ $d->start_date->translatedFormat('M') }}</span>
+                                    </span>
+                                    <span class="flex-1">
+                                        <span class="block text-sm font-semibold text-slate-900">{{ $d->label }}</span>
+                                        <span class="block text-xs text-slate-500">{{ $d->days_label }} · {{ $cities->count() }} kota tersedia</span>
+                                    </span>
+                                    <span class="text-xs font-semibold text-brand-700 transition group-hover:translate-x-0.5">Daftar →</span>
+                                </a>
+                            </li>
+                        @empty
+                            <li class="px-6 py-8 text-center text-sm text-slate-500">Jadwal baru segera diumumkan.</li>
+                        @endforelse
+                    </ul>
+                    <a href="{{ route('schedule.index') }}" class="block border-t border-slate-100 bg-slate-50 px-6 py-3 text-center text-sm font-semibold text-brand-700 hover:bg-brand-50">Lihat jadwal Januari – Desember {{ $year }}</a>
+                </div>
             </div>
         </div>
-        @endif
     </div>
 </section>
 
@@ -68,10 +84,10 @@
 <section class="border-y border-slate-200/70 bg-slate-50/60">
     <div class="container-x grid grid-cols-2 divide-slate-200 py-8 md:grid-cols-4 md:divide-x">
         @foreach([
+            [$yearDates->count(), 'Jadwal tahun '.$year],
+            [$cities->count(), 'Kota pelaksanaan'],
+            [$topics->count().'+', 'Tema bimtek'],
             [number_format($stats['alumni'], 0, ',', '.').'+', 'Alumni peserta'],
-            [number_format($stats['trainings'], 0, ',', '.').'+', 'Kegiatan terselenggara'],
-            [number_format($stats['partners'], 0, ',', '.').'+', 'Instansi mitra'],
-            [$stats['years'].'+', 'Tahun pengalaman'],
         ] as [$value, $label])
             <div class="px-4 py-3 text-center">
                 <p class="text-3xl font-extrabold tracking-tight text-slate-900">{{ $value }}</p>
@@ -81,63 +97,101 @@
     </div>
 </section>
 
-{{-- UPCOMING --}}
+{{-- TOPICS --}}
 <section class="container-x py-20">
     <div class="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
         <div>
-            <p class="eyebrow">Jadwal Terdekat</p>
-            <h2 class="section-title mt-2">Bimtek & Diklat yang Akan Datang</h2>
+            <p class="eyebrow">Tema Bimtek</p>
+            <h2 class="section-title mt-2">Pilih Tema Sesuai Kebutuhan Instansi</h2>
+            <p class="mt-2 max-w-2xl text-slate-600">Setiap tema dapat diikuti pada seluruh tanggal dan kota pelaksanaan.</p>
         </div>
-        <div class="flex gap-2">
-            <a href="{{ route('trainings.calendar') }}" class="btn btn-outline"><x-heroicon-o-calendar class="size-4"/> Kalender</a>
-            <a href="{{ route('trainings.index') }}" class="btn btn-outline">Semua jadwal <x-heroicon-m-arrow-right class="size-4"/></a>
-        </div>
+        <a href="{{ route('topics.index') }}" class="btn btn-outline">Semua tema <x-heroicon-m-arrow-right class="size-4"/></a>
     </div>
-    @if($upcoming->isEmpty())
-        <div class="card mt-10 p-10 text-center text-slate-500">Belum ada jadwal kegiatan. Hubungi kami untuk info terbaru.</div>
+    @if($categories->isNotEmpty())
+        <div class="mt-8 flex flex-wrap gap-2">
+            @foreach($categories as $c)
+                <a href="{{ route('topics.index', ['kategori' => $c->slug]) }}" class="chip hover:bg-slate-200">{{ $c->name }} <span class="opacity-60">{{ $c->topics_count }}</span></a>
+            @endforeach
+        </div>
+    @endif
+    @if($featuredTopics->isEmpty())
+        <div class="card mt-10 p-10 text-center text-slate-500">Daftar tema segera diumumkan. Anda tetap dapat mendaftar dengan mengusulkan tema.</div>
     @else
-        <div class="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            @foreach($upcoming as $t)<x-training-card :training="$t"/>@endforeach
+        <div class="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            @foreach($featuredTopics as $topic)<x-topic-card :topic="$topic"/>@endforeach
         </div>
     @endif
 </section>
 
-{{-- CATEGORIES --}}
-@if($categories->isNotEmpty())
+{{-- YEAR SCHEDULE OVERVIEW --}}
+@if($yearDates->isNotEmpty())
 <section class="bg-slate-50/70 py-20">
     <div class="container-x">
-        <div class="max-w-2xl">
-            <p class="eyebrow">Bidang Program</p>
-            <h2 class="section-title mt-2">Temukan Pelatihan Sesuai Kebutuhan Instansi</h2>
+        <div class="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
+            <div>
+                <p class="eyebrow">Jadwal {{ $year }}</p>
+                <h2 class="section-title mt-2">Januari – Desember {{ $year }}</h2>
+                <p class="mt-2 text-slate-600">Kegiatan berlangsung 2 hari. Klik tanggal untuk mendaftar.</p>
+            </div>
+            <a href="{{ route('schedule.index') }}" class="btn btn-outline">Jadwal lengkap <x-heroicon-m-arrow-right class="size-4"/></a>
         </div>
         <div class="mt-10 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            @foreach($categories as $c)
-                <a href="{{ route('trainings.index', ['kategori' => $c->slug]) }}" class="group card flex items-start gap-4 p-5 transition hover:border-brand-200 hover:bg-white hover:shadow-lg hover:shadow-slate-200/50">
-                    <span class="grid size-11 shrink-0 place-items-center rounded-xl bg-brand-50 text-brand-700 transition group-hover:bg-brand-600 group-hover:text-white">
-                        <x-heroicon-o-academic-cap class="size-5"/>
-                    </span>
-                    <span>
-                        <span class="block font-semibold text-slate-900">{{ $c->name }}</span>
-                        <span class="mt-0.5 block text-xs text-slate-500">{{ $c->trainings_count }} jadwal tersedia</span>
-                    </span>
-                </a>
+            @foreach(range(1, 12) as $m)
+                @php $items = $yearMonths->get($m, collect()); @endphp
+                <div class="card p-4">
+                    <p class="text-xs font-bold tracking-wide text-slate-900 uppercase">{{ \Carbon\Carbon::create($year, $m, 1)->translatedFormat('F') }}</p>
+                    <div class="mt-3 flex flex-wrap gap-1.5">
+                        @forelse($items as $d)
+                            @if($d->is_open)
+                                <a href="{{ route('register.create', ['tanggal' => $d->start_date->toDateString()]) }}" title="{{ $d->label }} ({{ $d->days_label }})"
+                                   class="rounded-lg bg-brand-50 px-2 py-1 text-xs font-semibold text-brand-800 ring-1 ring-brand-100 hover:bg-brand-600 hover:text-white">{{ $d->start_date->format('d') }}–{{ $d->end_date->format('d') }}</a>
+                            @else
+                                <span class="rounded-lg bg-slate-100 px-2 py-1 text-xs text-slate-400 line-through">{{ $d->start_date->format('d') }}–{{ $d->end_date->format('d') }}</span>
+                            @endif
+                        @empty
+                            <span class="text-xs text-slate-400">—</span>
+                        @endforelse
+                    </div>
+                </div>
             @endforeach
         </div>
     </div>
 </section>
 @endif
 
-{{-- WHY + HOW --}}
-<section class="container-x grid gap-14 py-20 lg:grid-cols-2">
+{{-- CITIES --}}
+@if($cities->isNotEmpty())
+<section class="container-x py-20">
+    <div class="max-w-2xl">
+        <p class="eyebrow">Lokasi Kegiatan</p>
+        <h2 class="section-title mt-2">{{ $cities->count() }} Kota, {{ $venues->count() }} Hotel Pilihan</h2>
+        <p class="mt-2 text-slate-600">Pilih kota terdekat atau yang paling sesuai dengan rencana perjalanan dinas Anda.</p>
+    </div>
+    <div class="mt-10 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        @foreach($cities as $city => $hotels)
+            <a href="{{ route('register.create', ['hotel' => $hotels->first()->id]) }}" class="group card flex items-start gap-3 p-4 transition hover:border-brand-200 hover:shadow-lg hover:shadow-slate-200/50">
+                <span class="grid size-10 shrink-0 place-items-center rounded-xl bg-brand-50 text-brand-700 transition group-hover:bg-brand-600 group-hover:text-white"><x-heroicon-o-map-pin class="size-5"/></span>
+                <span class="min-w-0">
+                    <span class="block font-semibold text-slate-900">{{ $city }}</span>
+                    <span class="block truncate text-xs text-slate-500">{{ $hotels->pluck('name')->join(', ') }}</span>
+                </span>
+            </a>
+        @endforeach
+    </div>
+</section>
+@endif
+
+{{-- HOW TO REGISTER --}}
+<section class="container-x grid gap-14 pb-20 lg:grid-cols-2">
     <div>
         <p class="eyebrow">Mengapa Prima Diklat</p>
-        <h2 class="section-title mt-2">Pelatihan yang Praktis, Tertib Administrasi, dan Tepat Regulasi</h2>
+        <h2 class="section-title mt-2">Fleksibel, Tertib Administrasi, dan Tepat Regulasi</h2>
         <div class="mt-8 grid gap-6 sm:grid-cols-2">
             @foreach([
+                ['heroicon-o-adjustments-horizontal', 'Jadwal Fleksibel', 'Tema, tanggal, dan kota bisa dipilih bebas mengikuti agenda instansi.'],
                 ['heroicon-o-user-group', 'Narasumber Praktisi', 'Akademisi, praktisi, dan pejabat kementerian yang berpengalaman.'],
-                ['heroicon-o-document-check', 'Materi Sesuai Regulasi', 'Kurikulum diperbarui mengikuti peraturan terbaru.'],
-                ['heroicon-o-document-text', 'Administrasi Lengkap', 'Undangan resmi, daftar hadir, kuitansi, dan sertifikat.'],
-                ['heroicon-o-building-office', 'Hotel Nyaman', 'Diselenggarakan di hotel berbintang dengan fasilitas lengkap.'],
+                ['heroicon-o-document-text', 'Administrasi Lengkap', 'Undangan resmi, invoice, kuitansi, daftar hadir, dan sertifikat ber-QR.'],
+                ['heroicon-o-building-office', 'Hotel Nyaman', 'Diselenggarakan di hotel pilihan di '.$cities->count().' kota.'],
             ] as [$icon, $title, $desc])
                 <div>
                     <span class="grid size-10 place-items-center rounded-xl bg-amber-50 text-amber-600"><x-dynamic-component :component="$icon" class="size-5"/></span>
@@ -149,13 +203,14 @@
     </div>
     <div class="card bg-slate-950 p-8 text-slate-300 sm:p-10">
         <p class="text-xs font-semibold tracking-[0.14em] text-brand-300 uppercase">Alur Pendaftaran</p>
-        <h3 class="mt-2 text-2xl font-bold text-white">4 langkah mudah</h3>
+        <h3 class="mt-2 text-2xl font-bold text-white">5 langkah mudah</h3>
         <ol class="mt-8 space-y-6">
             @foreach([
-                ['Pilih kegiatan', 'Temukan jadwal dan topik yang sesuai melalui menu Jadwal atau Kalender.'],
-                ['Unduh undangan', 'Gunakan surat undangan PDF resmi untuk proses SPPD di instansi Anda.'],
-                ['Daftar online', 'Isi formulir singkat dan dapatkan kode pendaftaran secara instan.'],
-                ['Ikuti & dapatkan sertifikat', 'Hadir sesuai jadwal, sertifikat dapat dicek dan diunduh online.'],
+                ['Pilih tema, tanggal & kota', 'Tentukan tema bimtek, salah satu jadwal, dan hotel pelaksanaan. Tema yang belum ada bisa diusulkan.'],
+                ['Isi data peserta', 'Satu formulir untuk satu atau beberapa peserta dari instansi yang sama. Kode pendaftaran langsung terbit.'],
+                ['Konfirmasi biaya via WhatsApp', 'Admin menghubungi kontak Anda untuk menyampaikan biaya kontribusi, lalu tagihan dikirim ke email.'],
+                ['Bayar & unggah bukti transfer', 'Unggah bukti di halaman status pendaftaran. Kuitansi resmi terbit setelah diverifikasi.'],
+                ['Ikuti kegiatan & unduh sertifikat', 'Hadir sesuai jadwal. Sertifikat ber-QR dapat diunduh di menu Cek Sertifikat.'],
             ] as $i => [$title, $desc])
                 <li class="flex gap-4">
                     <span class="grid size-8 shrink-0 place-items-center rounded-full bg-brand-600 text-sm font-bold text-white">{{ $i + 1 }}</span>
@@ -163,7 +218,7 @@
                 </li>
             @endforeach
         </ol>
-        <a href="{{ route('trainings.index') }}" class="btn btn-primary mt-8 w-full">Lihat Jadwal & Daftar</a>
+        <a href="{{ route('register.create') }}" class="btn btn-primary mt-8 w-full">Daftar Sekarang</a>
     </div>
 </section>
 

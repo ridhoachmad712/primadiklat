@@ -103,6 +103,11 @@ class Settings extends Page
                             TextInput::make('invitation_signatory')->label('Jabatan penanda tangan undangan'),
                             TextInput::make('invitation_signatory_name')->label('Nama penanda tangan'),
                         ]),
+                        Grid::make(2)->schema([
+                            TextInput::make('schedule_close_days')->label('Pendaftaran ditutup H-berapa')->numeric()->minValue(0)->suffix('hari sebelum kegiatan')
+                                ->helperText('Berlaku untuk jadwal tanggal (Jadwal & Tema).'),
+                            Textarea::make('price_notice')->label('Keterangan biaya di form pendaftaran')->rows(2),
+                        ]),
                         Textarea::make('payment_instructions')->label('Petunjuk pembayaran')->rows(2)->helperText('Tampil di halaman status pendaftaran, di bawah info rekening.'),
                     ]),
                     Tab::make('Sertifikat')->icon(Heroicon::OutlinedAcademicCap)->schema([

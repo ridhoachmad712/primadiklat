@@ -27,9 +27,17 @@ class PageController extends Controller
         $q = trim((string) $request->query('q'));
         $trainings = collect();
         $posts = collect();
+        $topics = collect();
+        $venues = collect();
 
         if (mb_strlen($q) >= 2) {
-            $trainings = Training::published()->with('category')
+            $topics = \App\Models\Topic::active()->with('category')
+                ->where(fn ($w) => $w->where('title', 'like', "%{$q}%")->orWhere('excerpt', 'like', "%{$q}%"))
+                ->take(12)->get();
+            $venues = \App\Models\Venue::active()
+                ->where(fn ($w) => $w->where('city', 'like', "%{$q}%")->orWhere('name', 'like', "%{$q}%"))
+                ->get();
+            $trainings = Training::published()->whereNull('schedule_date_id')->with('category')
                 ->where(fn ($w) => $w->where('title', 'like', "%{$q}%")->orWhere('excerpt', 'like', "%{$q}%")->orWhere('city', 'like', "%{$q}%"))
                 ->orderByDesc('start_date')->take(12)->get();
             $posts = Post::published()
@@ -37,6 +45,6 @@ class PageController extends Controller
                 ->take(6)->get();
         }
 
-        return view('pages.search', compact('q', 'trainings', 'posts'));
+        return view('pages.search', compact('q', 'trainings', 'posts', 'topics', 'venues'));
     }
 }

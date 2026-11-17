@@ -30,7 +30,7 @@
             <h3 class="text-sm font-semibold text-white">Program</h3>
             <ul class="mt-4 space-y-2.5 text-sm">
                 @foreach($footerCategories as $c)
-                    <li><a href="{{ route('trainings.index', ['kategori' => $c->slug]) }}" class="hover:text-white">{{ $c->name }}</a></li>
+                    <li><a href="{{ route('topics.index', ['kategori' => $c->slug]) }}" class="hover:text-white">{{ $c->name }}</a></li>
                 @endforeach
             </ul>
         </div>
@@ -38,7 +38,9 @@
         <div class="lg:col-span-2">
             <h3 class="text-sm font-semibold text-white">Informasi</h3>
             <ul class="mt-4 space-y-2.5 text-sm">
+                <li><a href="{{ route('schedule.index') }}" class="hover:text-white">Jadwal Bimtek</a></li>
                 <li><a href="{{ route('trainings.calendar') }}" class="hover:text-white">Kalender Kegiatan</a></li>
+                <li><a href="{{ route('galleries.index') }}" class="hover:text-white">Galeri</a></li>
                 <li><a href="{{ route('inhouse.create') }}" class="hover:text-white">In-House Training</a></li>
                 <li><a href="{{ route('certificates.index') }}" class="hover:text-white">Cek Sertifikat</a></li>
                 <li><a href="{{ route('faq') }}" class="hover:text-white">FAQ</a></li>

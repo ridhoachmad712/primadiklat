@@ -9,8 +9,9 @@
     $days = [];
     for ($d = $gridStart->copy(); $d->lte($gridEnd); $d->addDay()) { $days[] = $d->copy(); }
     $inMonth = $trainings->filter(fn ($t) => $t->start_date->lte($month->copy()->endOfMonth()) && $t->end_date->gte($month));
+    $slotsInMonth = $slots->filter(fn ($d) => $d->start_date->lte($month->copy()->endOfMonth()) && $d->end_date->gte($month));
 @endphp
-<x-page-header title="Kalender Kegiatan" eyebrow="Jadwal" subtitle="Lihat seluruh jadwal bimtek dan diklat dalam tampilan kalender bulanan." :crumbs="['Jadwal' => route('trainings.index'), 'Kalender' => null]"/>
+<x-page-header title="Kalender Kegiatan" eyebrow="Jadwal" subtitle="Lihat seluruh jadwal bimtek dan diklat dalam tampilan kalender bulanan." :crumbs="['Jadwal' => route('schedule.index'), 'Kalender' => null]"/>
 
 <section class="container-x py-10">
     <div class="flex flex-wrap items-center justify-between gap-4">
@@ -36,6 +37,13 @@
                         'text-slate-300' => ! $day->isToday() && ! $day->isSameMonth($month),
                         'text-slate-700' => ! $day->isToday() && $day->isSameMonth($month)])>{{ $day->day }}</div>
                     <div class="space-y-1">
+                        @foreach($slots->filter(fn ($d) => $day->betweenIncluded($d->start_date, $d->end_date)) as $d)
+                            @if($d->is_open)
+                                <a href="{{ route('register.create', ['tanggal' => $d->start_date->toDateString()]) }}" class="block rounded-md bg-brand-600 px-1.5 py-1 text-[11px] leading-tight font-semibold text-white hover:bg-brand-700">{{ $day->isSameDay($d->start_date) ? 'Jadwal Bimtek · Daftar' : '↳ Jadwal Bimtek' }}</a>
+                            @else
+                                <span class="block rounded-md bg-slate-200 px-1.5 py-1 text-[11px] leading-tight font-medium text-slate-500">Jadwal Bimtek</span>
+                            @endif
+                        @endforeach
                         @foreach($events->take(3) as $t)
                             <a href="{{ route('trainings.show', $t) }}" title="{{ $t->title }}"
                                class="block truncate rounded-md border px-1.5 py-1 text-[11px] leading-tight font-medium hover:brightness-95 {{ $colors[$t->id % count($colors)] }}">
@@ -52,9 +60,25 @@
     {{-- List (mobile + summary) --}}
     <div class="mt-8">
         <h3 class="font-semibold text-slate-900 md:text-lg">Daftar kegiatan {{ $month->translatedFormat('F Y') }}</h3>
-        @if($inMonth->isEmpty())
+        @if($slotsInMonth->isNotEmpty())
+            <ul class="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                @foreach($slotsInMonth as $d)
+                    <li>
+                        <a href="{{ $d->is_open ? route('register.create', ['tanggal' => $d->start_date->toDateString()]) : route('schedule.index') }}" @class(['card flex items-center gap-4 p-4', 'hover:border-brand-200 hover:bg-brand-50/40' => $d->is_open, 'opacity-60' => ! $d->is_open])>
+                            <x-heroicon-o-calendar-days class="size-6 shrink-0 text-brand-600"/>
+                            <span class="flex-1">
+                                <span class="block font-semibold text-slate-900">Jadwal Bimtek · {{ $d->label }}</span>
+                                <span class="block text-xs text-slate-500">{{ $d->days_label }} · semua tema & kota</span>
+                            </span>
+                            <span class="text-xs font-semibold {{ $d->is_open ? 'text-brand-700' : 'text-slate-400' }}">{{ $d->is_open ? 'Daftar' : 'Ditutup' }}</span>
+                        </a>
+                    </li>
+                @endforeach
+            </ul>
+        @endif
+        @if($inMonth->isEmpty() && $slotsInMonth->isEmpty())
             <p class="card mt-4 p-8 text-center text-sm text-slate-500">Tidak ada kegiatan pada bulan ini.</p>
-        @else
+        @elseif($inMonth->isNotEmpty())
             <ul class="mt-4 divide-y divide-slate-100 card">
                 @foreach($inMonth as $t)
                     <li>

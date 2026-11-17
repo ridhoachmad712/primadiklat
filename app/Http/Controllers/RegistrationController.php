@@ -7,7 +7,10 @@ use App\Mail\PaymentProofUploaded;
 use App\Mail\RegistrationReceived;
 use App\Models\Invoice;
 use App\Models\Registration;
+use App\Models\ScheduleDate;
+use App\Models\Topic;
 use App\Models\Training;
+use App\Models\Venue;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -20,6 +23,64 @@ class RegistrationController extends Controller
 {
     public const MAX_PARTICIPANTS = 20;
 
+    /** Open schedule: participant picks topic, date and venue (Jadwal Bimtek tahunan). */
+    public function openCreate(Request $request)
+    {
+        $topics = Topic::active()->with('category')->get();
+        $dates = ScheduleDate::open()->get();
+        $venues = Venue::active()->get();
+
+        // Pre-select from query string (?tema=slug&tanggal=Y-m-d&hotel=id&kota=Name).
+        $selected = [
+            'topic' => optional($topics->firstWhere('slug', $request->query('tema')))->id,
+            'schedule_date_id' => optional($dates->first(fn ($d) => $d->start_date->toDateString() === $request->query('tanggal')))->id,
+            'venue_id' => optional($venues->first(fn ($v) => (string) $v->id === (string) $request->query('hotel'))
+                ?? $venues->first(fn ($v) => strcasecmp($v->city, (string) $request->query('kota')) === 0))->id,
+        ];
+
+        return view('registrations.open', compact('topics', 'dates', 'venues', 'selected'));
+    }
+
+    public function openStore(Request $request)
+    {
+        if (filled($request->input('website'))) {
+            return redirect()->route('home');
+        }
+
+        $data = $request->validate([
+            'topic' => ['required', 'string'],
+            'custom_topic' => ['nullable', 'required_if:topic,other', 'string', 'min:5', 'max:200'],
+            'schedule_date_id' => ['required', 'integer'],
+            'venue_id' => ['required', Rule::exists('venues', 'id')->where('is_active', true)],
+            ...$this->participantRules(),
+        ], [
+            ...$this->messages(),
+            'topic.required' => 'Pilih tema bimtek.',
+            'custom_topic.required_if' => 'Tuliskan tema yang Anda usulkan.',
+            'schedule_date_id.required' => 'Pilih tanggal pelaksanaan.',
+            'venue_id.required' => 'Pilih kota dan hotel pelaksanaan.',
+        ], [...$this->attributes(), 'custom_topic' => 'tema usulan', 'venue_id' => 'hotel']);
+
+        $date = ScheduleDate::open()->find($data['schedule_date_id']);
+        if (! $date) {
+            return back()->withErrors(['schedule_date_id' => 'Tanggal tersebut sudah tidak menerima pendaftaran. Silakan pilih tanggal lain.'])->withInput();
+        }
+
+        if ($data['topic'] === 'other') {
+            $topic = trim($data['custom_topic']);
+        } else {
+            $topic = Topic::active()->find($data['topic']);
+            if (! $topic) {
+                return back()->withErrors(['topic' => 'Tema tidak tersedia.'])->withInput();
+            }
+        }
+
+        $training = DB::transaction(fn () => Training::forSelection($topic, $date, Venue::findOrFail($data['venue_id'])));
+
+        return $this->createBatch($training, $data, null, null);
+    }
+
+    /** Fixed classes created by admin (with their own price packages). */
     public function create(Training $training)
     {
         abort_unless($training->status === 'published', 404);
@@ -41,9 +102,27 @@ class RegistrationController extends Controller
         }
 
         $packages = collect($training->prices ?? [])->pluck('name')->all();
-        $phone = ['regex:/^[0-9+\-\s]{9,20}$/'];
 
         $data = $request->validate([
+            ...$this->participantRules(),
+            'package' => [$packages ? 'required' : 'nullable', Rule::in($packages)],
+        ], $this->messages(), $this->attributes());
+
+        $remaining = $training->remaining_quota;
+        if ($remaining !== null && count($data['participants']) > $remaining) {
+            return back()->withErrors(['participants' => "Sisa kuota hanya {$remaining} kursi."])->withInput();
+        }
+
+        $price = collect($training->prices ?? [])->firstWhere('name', $data['package'] ?? null)['price'] ?? null;
+
+        return $this->createBatch($training, $data, $data['package'] ?? null, $price);
+    }
+
+    private function participantRules(): array
+    {
+        $phone = ['regex:/^[0-9+\-\s]{9,20}$/'];
+
+        return [
             'institution' => ['required', 'string', 'max:200'],
             'institution_address' => ['nullable', 'string', 'max:255'],
             'city' => ['nullable', 'string', 'max:100'],
@@ -55,31 +134,38 @@ class RegistrationController extends Controller
             'participants.*.phone' => ['nullable', 'string', ...$phone],
             'participants.0.email' => ['required', 'email', 'max:150'],
             'participants.0.phone' => ['required', 'string', ...$phone],
-            'package' => [$packages ? 'required' : 'nullable', Rule::in($packages)],
             'notes' => ['nullable', 'string', 'max:1000'],
             'agree' => ['accepted'],
-        ], [
+        ];
+    }
+
+    private function messages(): array
+    {
+        return [
             'agree.accepted' => 'Anda harus menyetujui syarat dan ketentuan.',
             'participants.*.phone.regex' => 'Nomor HP tidak valid.',
             'participants.*.name.required' => 'Nama peserta wajib diisi.',
             'participants.0.email.required' => 'Email peserta pertama (kontak) wajib diisi.',
             'participants.0.phone.required' => 'Nomor HP peserta pertama (kontak) wajib diisi.',
             'participants.max' => 'Maksimal '.self::MAX_PARTICIPANTS.' peserta per pendaftaran.',
-        ], [
+        ];
+    }
+
+    private function attributes(): array
+    {
+        return [
             'institution' => 'instansi', 'package' => 'paket',
             'participants.*.email' => 'email', 'participants.*.phone' => 'nomor HP',
-        ]);
+        ];
+    }
 
+    /** One invoice + one registration per participant, then confirmation mails. */
+    private function createBatch(Training $training, array $data, ?string $package, ?int $price)
+    {
         $people = array_values($data['participants']);
-        $remaining = $training->remaining_quota;
-        if ($remaining !== null && count($people) > $remaining) {
-            return back()->withErrors(['participants' => "Sisa kuota hanya {$remaining} kursi."])->withInput();
-        }
-
-        $price = collect($training->prices ?? [])->firstWhere('name', $data['package'] ?? null)['price'] ?? null;
         $contact = $people[0];
 
-        $invoice = DB::transaction(function () use ($training, $data, $people, $price, $contact) {
+        $invoice = DB::transaction(function () use ($training, $data, $people, $package, $price, $contact) {
             $invoice = Invoice::create([
                 'training_id' => $training->id,
                 'institution' => $data['institution'],
@@ -99,7 +185,7 @@ class RegistrationController extends Controller
                     'institution' => $data['institution'],
                     'institution_address' => $data['institution_address'] ?? null,
                     'city' => $data['city'] ?? null,
-                    'package' => $data['package'] ?? null,
+                    'package' => $package,
                     'price' => $price,
                     'notes' => $data['notes'] ?? null,
                 ]);

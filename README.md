@@ -4,10 +4,18 @@ Website informasi dan pendaftaran Bimtek & Diklat, dibangun dengan **Laravel 12*
 
 ## Fitur
 
+**Model jadwal terbuka (Jadwal Bimtek tahunan)**
+- Admin mengelola tiga data induk: **Tema Bimtek**, **Jadwal Tanggal** (slot 2 hari), dan **Kota & Hotel**. Seeder `Schedule2027Seeder` sudah berisi 55 slot dan 14 hotel di 13 kota sesuai PDF jadwal 2027
+- Peserta bebas memilih kombinasi tema, tanggal, dan hotel di `/daftar`, atau mengusulkan "tema lain"
+- Setiap kombinasi yang dipilih otomatis membentuk satu **kelas** (menu Kelas Kegiatan). Kelas dari tema usulan berstatus draf sampai dikonfirmasi admin
+- **Tarif tidak ditampilkan** di website. Admin menyampaikan biaya lewat WhatsApp, lalu memakai aksi **Tetapkan biaya** di menu Tagihan. Setelah itu invoice terbit, email tagihan terkirim, dan peserta bisa mengunggah bukti transfer
+- Pendaftaran tiap slot ditutup H-3 (bisa diubah di Pengaturan)
+
 **Website publik**
-- Beranda: hero dengan pencarian, statistik, kegiatan terdekat, kategori, alur pendaftaran, testimoni, mitra, berita, dan ajakan in-house training
-- Jadwal kegiatan dengan filter (kata kunci, kategori, bulan, jenis, kota, metode) serta arsip
-- Kalender bulanan
+- Beranda: pilihan cepat tema/tanggal/kota, jadwal terdekat, katalog tema, ringkasan jadwal setahun, kota & hotel, alur pendaftaran 5 langkah, testimoni, mitra, berita, dan ajakan in-house training
+- `/jadwal`: jadwal Januari–Desember per bulan, ditambah daftar kota & hotel
+- `/tema`: katalog tema dengan filter kategori, serta halaman detail tema
+- Kalender bulanan (slot jadwal ditambah kegiatan khusus), dan `/kegiatan` untuk daftar kelas yang sudah terbentuk
 - Detail kegiatan: jadwal, lokasi, kuota, paket biaya, fasilitas, materi, tombol bagikan, dan schema.org Event untuk SEO
 - **Surat undangan PDF otomatis** per kegiatan, untuk keperluan SPPD
 - **Pendaftaran online, perorangan maupun rombongan** (hingga 20 peserta dari satu instansi dengan satu tagihan): kode pendaftaran per peserta, email konfirmasi, dan notifikasi ke admin

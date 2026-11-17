@@ -8,6 +8,9 @@ use App\Filament\Resources;
 use App\Filament\Widgets;
 use App\Models\Gallery;
 use App\Models\Invoice;
+use App\Models\ScheduleDate;
+use App\Models\Topic;
+use App\Models\Venue;
 use App\Models\Post;
 use App\Models\Registration;
 use App\Models\Training;
@@ -40,7 +43,9 @@ class SiteTest extends TestCase
             '/', '/jadwal', '/jadwal?status=selesai', '/jadwal?kategori=kearsipan&bulan='.now()->format('Y-m'),
             '/kalender', '/kalender?bulan=2027-01', '/berita', '/berita?kategori=artikel', '/galeri',
             '/galeri/dokumentasi-uji', '/sertifikat', '/sertifikat?kode=TIDAK-ADA', '/in-house-training',
-            '/kontak', '/faq', '/cari?q=bimtek', '/halaman/tentang-kami', '/sitemap.xml',
+            '/kontak', '/faq', '/cari?q=bimtek', '/cari?q=makassar', '/halaman/tentang-kami', '/sitemap.xml',
+            '/kegiatan', '/tema', '/tema?kategori=kearsipan&q=arsip', '/tema/'.Topic::first()->slug,
+            '/daftar', '/daftar?tema='.Topic::first()->slug.'&tanggal=2027-01-07&kota=Makassar', '/jadwal?tahun=2027',
             route('trainings.show', $training, false), route('registrations.create', $training, false),
             route('posts.show', $post, false),
         ] as $url) {
@@ -178,6 +183,92 @@ class SiteTest extends TestCase
         $this->actingAs(User::first())->get(route('certificates.download', ['code' => $unpaid->code, 'preview' => 1]))->assertOk();
     }
 
+    public function test_schedule_2027_is_seeded_from_pdf(): void
+    {
+        $this->assertSame(55, ScheduleDate::whereYear('start_date', 2027)->count());
+        $this->assertSame(14, Venue::count());
+        $this->assertSame(13, Venue::distinct()->count('city'));
+        $slot = ScheduleDate::whereDate('start_date', '2027-01-07')->firstOrFail();
+        $this->assertSame('2027-01-08', $slot->end_date->toDateString());
+
+        $this->get('/jadwal')->assertOk()->assertSee('Jadwal Bimtek 2027')->assertSee('Swiss-Belinn Panakkukang Makassar')->assertSee('07 – 08 Januari 2027');
+        $this->get('/')->assertOk()->assertSee('Januari – Desember 2027')->assertDontSee('Mulai Rp');
+    }
+
+    public function test_open_schedule_registration_without_price(): void
+    {
+        Mail::fake();
+        $topic = Topic::first();
+        $date = ScheduleDate::open()->first();
+        $venue = Venue::where('city', 'Makassar')->firstOrFail();
+
+        $payload = [
+            'topic' => (string) $topic->id,
+            'schedule_date_id' => $date->id,
+            'venue_id' => $venue->id,
+            'institution' => 'Dinas Terbuka',
+            'participants' => [
+                ['name' => 'Kontak Terbuka', 'email' => 'terbuka@example.com', 'phone' => '081234567890'],
+                ['name' => 'Rekan Terbuka'],
+            ],
+            'agree' => '1',
+        ];
+        $this->post('/daftar', $payload)->assertSessionHasNoErrors();
+
+        $invoice = Invoice::where('institution', 'Dinas Terbuka')->firstOrFail();
+        $training = $invoice->training;
+        $this->assertSame($topic->id, $training->topic_id);
+        $this->assertSame($date->id, $training->schedule_date_id);
+        $this->assertSame('Makassar', $training->city);
+        $this->assertSame('published', $training->status);
+        $this->assertSame(0, $invoice->amount);
+        $this->assertFalse($invoice->can_upload_proof);
+
+        $code = $invoice->public_code;
+        $this->get(route('registrations.show', $code))->assertOk()->assertSee('Menunggu informasi biaya')->assertDontSee('Kirim Bukti Pembayaran');
+
+        // A second institution choosing the same combination joins the same class.
+        $this->post('/daftar', array_merge($payload, ['institution' => 'Dinas Kedua', 'participants' => [['name' => 'B', 'email' => 'b@example.com', 'phone' => '081234567891']]]));
+        $this->assertSame($training->id, Invoice::where('institution', 'Dinas Kedua')->value('training_id'));
+
+        // Admin sets the price after the WhatsApp follow-up → invoice + upload become available.
+        $this->actingAs(User::first());
+        Livewire::test(Resources\Invoices\Pages\ManageInvoices::class)
+            ->callTableAction('set_price', $invoice, ['package' => 'Fullboard', 'price' => 4500000, 'notify' => true])
+            ->assertHasNoTableActionErrors();
+        $invoice->refresh();
+        $this->assertSame(9000000, $invoice->amount);
+        $this->assertTrue($invoice->can_upload_proof);
+        Mail::assertSent(\App\Mail\InvoiceReady::class);
+        $this->get(route('registrations.show', $code))->assertSee('Rp 9.000.000')->assertSee('Kirim Bukti Pembayaran');
+    }
+
+    public function test_open_schedule_custom_topic_and_closed_dates(): void
+    {
+        Mail::fake();
+        $venue = Venue::first();
+        $base = [
+            'venue_id' => $venue->id,
+            'institution' => 'Pemdes Usul',
+            'participants' => [['name' => 'Pengusul', 'email' => 'usul@example.com', 'phone' => '081234567890']],
+            'agree' => '1',
+        ];
+
+        $this->post('/daftar', $base + ['topic' => 'other', 'schedule_date_id' => ScheduleDate::open()->first()->id])
+            ->assertSessionHasErrors('custom_topic');
+
+        $this->post('/daftar', $base + ['topic' => 'other', 'custom_topic' => 'Pengelolaan BUMDes Modern', 'schedule_date_id' => ScheduleDate::open()->first()->id])
+            ->assertSessionHasNoErrors();
+        $training = Training::where('title', 'Pengelolaan BUMDes Modern')->firstOrFail();
+        $this->assertNull($training->topic_id);
+        $this->assertSame('draft', $training->status);
+
+        // A slot inside the closing window is rejected.
+        $soon = ScheduleDate::create(['start_date' => today()->addDay(), 'end_date' => today()->addDays(2)]);
+        $this->post('/daftar', $base + ['topic' => (string) Topic::first()->id, 'schedule_date_id' => $soon->id])
+            ->assertSessionHasErrors('schedule_date_id');
+    }
+
     public function test_terbilang_helper(): void
     {
         $this->assertSame('satu juta lima ratus ribu', terbilang(1500000));
@@ -210,6 +301,9 @@ class SiteTest extends TestCase
             Resources\Registrations\RegistrationResource::getUrl('index'),
             Resources\Registrations\RegistrationResource::getUrl('edit', ['record' => Registration::first()]),
             Resources\Invoices\InvoiceResource::getUrl('index'),
+            Resources\Topics\TopicResource::getUrl('index'),
+            Resources\ScheduleDates\ScheduleDateResource::getUrl('index'),
+            Resources\Venues\VenueResource::getUrl('index'),
             Resources\Posts\PostResource::getUrl('index'),
             Resources\Posts\PostResource::getUrl('create'),
             Resources\Posts\PostResource::getUrl('edit', ['record' => Post::first()]),

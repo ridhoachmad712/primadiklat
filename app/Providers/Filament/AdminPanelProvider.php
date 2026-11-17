@@ -52,6 +52,7 @@ class AdminPanelProvider extends PanelProvider
             ->unsavedChangesAlerts()
             ->navigationGroups([
                 NavigationGroup::make('Kegiatan'),
+                NavigationGroup::make('Jadwal & Tema'),
                 NavigationGroup::make('Konten Website'),
                 NavigationGroup::make('Pesan Masuk'),
                 NavigationGroup::make('Pengaturan')->collapsed(),

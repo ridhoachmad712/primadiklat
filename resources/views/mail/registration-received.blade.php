@@ -21,8 +21,14 @@ Instansi: {{ $registration->institution }}
 @foreach($people as $p)
 | {{ $p->name }} | {{ $p->code }} | {{ $p->price ? rupiah($p->price) : '-' }} |
 @endforeach
+@if(($invoice?->amount ?? $registration->price) > 0)
 | **Total** | | **{{ rupiah($invoice?->amount ?? $registration->price) }}** |
+@endif
 </x-mail::table>
+
+@if(($invoice?->amount ?? 0) <= 0)
+{{ setting('price_notice') }}
+@endif
 
 @if(setting('bank_info') && ($invoice?->amount ?? 0) > 0)
 **Informasi pembayaran:**<br>

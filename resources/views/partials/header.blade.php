@@ -1,15 +1,13 @@
 @php
     $nav = [
         ['Beranda', route('home'), request()->routeIs('home')],
-        ['Jadwal', route('trainings.index'), request()->routeIs('trainings.*', 'registrations.*')],
-        ['Kalender', route('trainings.calendar'), false],
+        ['Jadwal', route('schedule.index'), request()->routeIs('schedule.*', 'trainings.calendar')],
+        ['Tema Bimtek', route('topics.index'), request()->routeIs('topics.*')],
+        ['Daftar', route('register.create'), request()->routeIs('register.*', 'registrations.*')],
         ['In-House', route('inhouse.create'), request()->routeIs('inhouse.*')],
         ['Berita', route('posts.index'), request()->routeIs('posts.*')],
-        ['Galeri', route('galleries.index'), request()->routeIs('galleries.*')],
         ['Kontak', route('contact'), request()->routeIs('contact')],
     ];
-    $nav[2][2] = request()->routeIs('trainings.calendar');
-    if ($nav[2][2]) { $nav[1][2] = false; }
 @endphp
 <div class="hidden border-b border-slate-100 bg-slate-50 text-xs text-slate-500 md:block">
     <div class="container-x flex h-9 items-center justify-between">
@@ -52,7 +50,7 @@
             <button type="button" @click="search = !search; $nextTick(() => $refs.q?.focus())" class="btn-ghost btn !p-2.5" aria-label="Cari">
                 <x-heroicon-o-magnifying-glass class="size-5"/>
             </button>
-            <a href="{{ route('trainings.index') }}" class="btn btn-primary hidden sm:inline-flex">Daftar Kegiatan</a>
+            <a href="{{ route('register.create') }}" class="btn btn-primary hidden sm:inline-flex">Daftar Sekarang</a>
             <button type="button" @click="open = !open" class="btn-ghost btn !p-2.5 lg:hidden" :aria-expanded="open" aria-label="Menu">
                 <x-heroicon-o-bars-3 class="size-6" x-show="!open"/>
                 <x-heroicon-o-x-mark class="size-6" x-show="open" x-cloak/>
@@ -62,7 +60,7 @@
 
     <div x-show="search" x-collapse x-cloak class="border-t border-slate-100">
         <form action="{{ route('search') }}" class="container-x flex gap-2 py-3">
-            <input x-ref="q" type="search" name="q" value="{{ request('q') }}" placeholder="Cari bimtek, diklat, kota, atau artikel…" class="input">
+            <input x-ref="q" type="search" name="q" value="{{ request('q') }}" placeholder="Cari tema bimtek, kota, atau artikel…" class="input">
             <button class="btn btn-primary">Cari</button>
         </form>
     </div>

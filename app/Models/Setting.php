@@ -14,8 +14,8 @@ class Setting extends Model
         'site_name' => 'Prima Diklat',
         'site_tagline' => 'Pusat Informasi Bimtek & Diklat Aparatur',
         'site_description' => 'Prima Diklat menyelenggarakan bimbingan teknis, diklat, dan pelatihan untuk aparatur pemerintah, BUMN/BUMD, perguruan tinggi, dan swasta di seluruh Indonesia.',
-        'hero_title' => 'Tingkatkan Kompetensi Aparatur Bersama Prima Diklat',
-        'hero_subtitle' => 'Jadwal bimtek dan diklat terbaru, narasumber praktisi, materi sesuai regulasi terkini, dan sertifikat resmi.',
+        'hero_title' => 'Jadwal Bimtek 2027 Sudah Dibuka',
+        'hero_subtitle' => 'Pilih tema, tanggal, dan kota pelaksanaan sesuai kebutuhan instansi Anda. Kegiatan berlangsung setiap pekan di 13 kota, dengan narasumber praktisi dan sertifikat resmi.',
         'phone' => '0812-0000-0000',
         'whatsapp' => '6281200000000',
         'whatsapp_message' => 'Halo Admin Prima Diklat, saya ingin bertanya mengenai jadwal bimtek.',
@@ -34,6 +34,8 @@ class Setting extends Model
         'bank_info' => "Bank Mandiri\nNo. Rek: 000-000-0000\na.n. Prima Diklat",
         'invitation_signatory' => 'Direktur Prima Diklat',
         'invitation_signatory_name' => 'Nama Direktur',
+        'schedule_close_days' => '3',
+        'price_notice' => 'Informasi biaya kontribusi akan disampaikan oleh admin melalui WhatsApp setelah pendaftaran diterima.',
         'payment_instructions' => 'Setelah transfer, unggah bukti pembayaran melalui halaman status pendaftaran. Kuitansi resmi dapat diunduh setelah pembayaran diverifikasi.',
         'certificate_number_format' => '{no}/PD-SRT/{bulan}/{tahun}',
         'certificate_require_paid' => '1',
@@ -49,13 +51,12 @@ class Setting extends Model
 
     public static function all_cached(): array
     {
-        return Cache::rememberForever('settings.all', function () {
-            if (! Schema::hasTable('settings')) {
-                return self::DEFAULTS;
-            }
-
-            return array_merge(self::DEFAULTS, static::query()->pluck('value', 'key')->all());
+        // Only stored values are cached, so changed defaults apply without clearing the cache.
+        $stored = Cache::rememberForever('settings.stored', function () {
+            return Schema::hasTable('settings') ? static::query()->pluck('value', 'key')->all() : [];
         });
+
+        return array_merge(self::DEFAULTS, $stored);
     }
 
     public static function get(string $key, mixed $default = null): mixed
@@ -70,6 +71,6 @@ class Setting extends Model
         foreach ($values as $key => $value) {
             static::updateOrCreate(['key' => $key], ['value' => is_array($value) ? json_encode($value) : $value]);
         }
-        Cache::forget('settings.all');
+        Cache::forget('settings.stored');
     }
 }

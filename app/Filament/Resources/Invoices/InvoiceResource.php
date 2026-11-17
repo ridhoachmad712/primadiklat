@@ -95,7 +95,9 @@ class InvoiceResource extends Resource
                     ->description(fn (Invoice $record) => $record->contact_name.' · '.$record->contact_phone),
                 TextColumn::make('training.title')->label('Kegiatan')->limit(36)->tooltip(fn (Invoice $record) => $record->training?->title),
                 TextColumn::make('registrations_count')->label('Peserta')->alignCenter(),
-                TextColumn::make('amount')->label('Total')->money('IDR', locale: 'id')->sortable(),
+                TextColumn::make('amount')->label('Total')->sortable()
+                    ->formatStateUsing(fn ($state) => $state > 0 ? rupiah($state) : 'Belum ditetapkan')
+                    ->color(fn ($state) => $state > 0 ? null : 'warning'),
                 TextColumn::make('status')->badge()
                     ->formatStateUsing(fn ($state) => Invoice::STATUSES[$state] ?? $state)
                     ->color(fn ($state) => Invoice::STATUS_COLORS[$state] ?? 'gray')
@@ -112,8 +114,14 @@ class InvoiceResource extends Resource
                     ->color('gray')
                     ->visible(fn (Invoice $record) => filled($record->payment_proof))
                     ->url(fn (Invoice $record) => $record->proof_url, shouldOpenInNewTab: true),
+                static::setPriceAction(),
                 static::verifyAction(),
                 ActionGroup::make([
+                    Action::make('whatsapp')
+                        ->label('WhatsApp kontak')
+                        ->icon(Heroicon::OutlinedChatBubbleLeftRight)
+                        ->color('success')
+                        ->url(fn (Invoice $record) => wa_link(static::whatsappMessage($record), $record->contact_phone_wa), shouldOpenInNewTab: true),
                     static::rejectAction(),
                     Action::make('invoice_pdf')
                         ->label('Invoice PDF')
@@ -150,6 +158,59 @@ class InvoiceResource extends Resource
                 $record->markPaid(auth()->user());
             })
             ->successNotificationTitle('Pembayaran diverifikasi');
+    }
+
+    /** Open-schedule registrations have no published price; the admin sets it after the WhatsApp follow-up. */
+    public static function setPriceAction(): Action
+    {
+        return Action::make('set_price')
+            ->label(fn (Invoice $record) => $record->amount > 0 ? 'Ubah biaya' : 'Tetapkan biaya')
+            ->icon(Heroicon::OutlinedCurrencyDollar)
+            ->color(fn (Invoice $record) => $record->amount > 0 ? 'gray' : 'primary')
+            ->visible(fn (Invoice $record) => in_array($record->status, ['unpaid', 'waiting'], true))
+            ->modalHeading(fn (Invoice $record) => 'Biaya kontribusi · '.$record->number)
+            ->modalDescription(fn (Invoice $record) => $record->registrations()->where('status', '!=', 'cancelled')->count().' peserta dari '.$record->institution.'. Biaya per peserta diterapkan ke semua peserta dalam tagihan ini.')
+            ->fillForm(fn (Invoice $record) => [
+                'package' => $record->registrations()->value('package'),
+                'price' => $record->registrations()->value('price'),
+                'notify' => true,
+            ])
+            ->schema([
+                TextInput::make('package')->label('Nama paket')->placeholder('mis. Fullboard / Non-menginap'),
+                TextInput::make('price')->label('Biaya per peserta')->numeric()->prefix('Rp')->required()->minValue(1),
+                \Filament\Forms\Components\Toggle::make('notify')->label('Kirim email tagihan ke kontak')->default(true),
+            ])
+            ->action(function (Invoice $record, array $data) {
+                $record->setPrice((int) $data['price'], $data['package'] ?: null, (bool) $data['notify']);
+            })
+            ->successNotificationTitle('Biaya ditetapkan. Peserta kini dapat membayar dan mengunggah bukti transfer.');
+    }
+
+    public static function whatsappMessage(Invoice $record): string
+    {
+        $code = $record->public_code;
+        $lines = [
+            "Halo Bapak/Ibu {$record->contact_name},",
+            '',
+            "Terima kasih atas pendaftaran {$record->institution} pada kegiatan:",
+            "*{$record->training?->title}*",
+            "{$record->training?->date_range} · {$record->training?->location}",
+            'Jumlah peserta: '.$record->registrations()->where('status', '!=', 'cancelled')->count().' orang',
+        ];
+        if ($record->amount > 0) {
+            $lines[] = 'Total kontribusi: *'.rupiah($record->amount).'*';
+            $lines[] = '';
+            $lines[] = 'Invoice, info rekening, dan unggah bukti transfer:';
+        } else {
+            $lines[] = '';
+            $lines[] = 'Status pendaftaran:';
+        }
+        $lines[] = route('registrations.show', $code);
+        $lines[] = '';
+        $lines[] = 'Salam,';
+        $lines[] = setting('site_name');
+
+        return implode("\n", $lines);
     }
 
     public static function rejectAction(): Action

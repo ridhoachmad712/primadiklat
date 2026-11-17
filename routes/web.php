@@ -7,13 +7,23 @@ use App\Http\Controllers\HomeController;
 use App\Http\Controllers\PageController;
 use App\Http\Controllers\PostController;
 use App\Http\Controllers\RegistrationController;
+use App\Http\Controllers\ScheduleController;
+use App\Http\Controllers\TopicController;
 use App\Http\Controllers\SitemapController;
 use App\Http\Controllers\TrainingController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', HomeController::class)->name('home');
 
-Route::get('/jadwal', [TrainingController::class, 'index'])->name('trainings.index');
+// Yearly open schedule: any topic, any date slot, any city/hotel.
+Route::get('/jadwal', [ScheduleController::class, 'index'])->name('schedule.index');
+Route::get('/tema', [TopicController::class, 'index'])->name('topics.index');
+Route::get('/tema/{topic}', [TopicController::class, 'show'])->name('topics.show');
+Route::get('/daftar', [RegistrationController::class, 'openCreate'])->name('register.create');
+Route::post('/daftar', [RegistrationController::class, 'openStore'])->middleware('throttle:10,1')->name('register.store');
+
+// Concrete classes (formed from registrations or created by admin).
+Route::get('/kegiatan', [TrainingController::class, 'index'])->name('trainings.index');
 Route::get('/kalender', [TrainingController::class, 'calendar'])->name('trainings.calendar');
 Route::get('/kegiatan/{training}', [TrainingController::class, 'show'])->name('trainings.show');
 Route::get('/kegiatan/{training}/undangan.pdf', [TrainingController::class, 'invitation'])->name('trainings.invitation');
