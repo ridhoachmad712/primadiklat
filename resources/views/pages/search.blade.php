@@ -1,0 +1,36 @@
+@extends('layouts.app')
+
+@section('title', $q ? 'Hasil pencarian: '.$q : 'Pencarian')
+
+@section('content')
+<x-page-header title="Pencarian" :crumbs="['Pencarian' => null]">
+    <form class="mt-6 flex max-w-xl gap-2">
+        <input type="search" name="q" value="{{ $q }}" placeholder="Cari bimtek, diklat, kota, atau artikel…" class="input !py-3" autofocus>
+        <button class="btn btn-primary">Cari</button>
+    </form>
+</x-page-header>
+
+<section class="container-x py-12">
+    @if(mb_strlen($q) < 2)
+        <p class="text-slate-500">Ketik minimal 2 huruf untuk mencari.</p>
+    @elseif($trainings->isEmpty() && $posts->isEmpty())
+        <div class="card p-10 text-center">
+            <p class="font-semibold">Tidak ada hasil untuk “{{ $q }}”</p>
+            <p class="mt-1 text-sm text-slate-500">Coba kata kunci lain atau lihat <a href="{{ route('trainings.index') }}" class="text-brand-700 hover:underline">semua jadwal</a>.</p>
+        </div>
+    @else
+        @if($trainings->isNotEmpty())
+            <h2 class="text-lg font-bold">Kegiatan <span class="font-normal text-slate-400">({{ $trainings->count() }})</span></h2>
+            <div class="mt-5 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                @foreach($trainings as $t)<x-training-card :training="$t"/>@endforeach
+            </div>
+        @endif
+        @if($posts->isNotEmpty())
+            <h2 class="mt-14 text-lg font-bold">Artikel <span class="font-normal text-slate-400">({{ $posts->count() }})</span></h2>
+            <div class="mt-5 grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
+                @foreach($posts as $p)<x-post-card :post="$p"/>@endforeach
+            </div>
+        @endif
+    @endif
+</section>
+@endsection

@@ -1,0 +1,90 @@
+@import 'tailwindcss';
+@plugin '@tailwindcss/typography';
+
+@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
+@source '../../storage/framework/views/*.php';
+@source '../**/*.blade.php';
+@source '../**/*.js';
+
+@theme {
+    --font-sans: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
+
+    --color-brand-50: #eff5ff;
+    --color-brand-100: #dbe7fe;
+    --color-brand-200: #bfd5fe;
+    --color-brand-300: #93b8fd;
+    --color-brand-400: #6093fa;
+    --color-brand-500: #3b6ff6;
+    --color-brand-600: #1d4ed8;
+    --color-brand-700: #1a3fb4;
+    --color-brand-800: #1b3591;
+    --color-brand-900: #1c3173;
+    --color-brand-950: #121e45;
+
+    --color-accent-400: #fbbf24;
+    --color-accent-500: #f59e0b;
+}
+
+@layer base {
+    html {
+        scroll-behavior: smooth;
+        -webkit-tap-highlight-color: transparent;
+    }
+    body {
+        @apply bg-white text-slate-700 antialiased;
+    }
+    h1, h2, h3, h4 {
+        @apply text-slate-900 tracking-tight;
+    }
+    [x-cloak] {
+        display: none !important;
+    }
+}
+
+@layer components {
+    .container-x {
+        @apply mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8;
+    }
+    .btn {
+        @apply inline-flex items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 disabled:opacity-50;
+    }
+    .btn-primary {
+        @apply bg-brand-600 text-white hover:bg-brand-700;
+    }
+    .btn-outline {
+        @apply border border-slate-200 bg-white text-slate-800 hover:border-slate-300 hover:bg-slate-50;
+    }
+    .btn-ghost {
+        @apply text-slate-700 hover:bg-slate-100;
+    }
+    .btn-wa {
+        @apply bg-emerald-500 text-white hover:bg-emerald-600;
+    }
+    .card {
+        @apply rounded-2xl border border-slate-200/80 bg-white;
+    }
+    .chip {
+        @apply inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600;
+    }
+    .eyebrow {
+        @apply text-xs font-semibold uppercase tracking-[0.14em] text-brand-600;
+    }
+    .section-title {
+        @apply text-2xl font-bold sm:text-3xl;
+    }
+    .input {
+        @apply block w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 transition focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 focus:outline-none;
+    }
+    .label {
+        @apply mb-1.5 block text-sm font-medium text-slate-700;
+    }
+    .error {
+        @apply mt-1 text-xs text-rose-600;
+    }
+    .nav-link {
+        @apply rounded-lg px-3 py-2 text-sm font-medium text-slate-600 transition hover:text-slate-900;
+    }
+    .nav-link.active {
+        @apply text-brand-700;
+    }
+}
