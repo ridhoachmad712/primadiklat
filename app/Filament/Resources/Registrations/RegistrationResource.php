@@ -71,7 +71,7 @@ class RegistrationResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
-            ->modifyQueryUsing(fn (\Illuminate\Database\Eloquent\Builder $query) => $query->with('training'))
+            ->modifyQueryUsing(fn (\Illuminate\Database\Eloquent\Builder $query) => $query->with('training', 'invoice'))
             ->defaultSort('created_at', 'desc')
             ->columns(RegistrationSchema::columns())
             ->filters([
@@ -82,6 +82,7 @@ class RegistrationResource extends Resource
                 ActionGroup::make([
                     EditAction::make(),
                     RegistrationSchema::whatsappAction(),
+                    RegistrationSchema::certificateAction(),
                     DeleteAction::make(),
                 ]),
             ])

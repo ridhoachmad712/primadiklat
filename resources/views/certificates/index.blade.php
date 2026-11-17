@@ -43,10 +43,10 @@
             </dl>
             @if($valid)
                 <div class="border-t border-slate-100 p-6">
-                    @if($r->certificate_url)
-                        <a href="{{ $r->certificate_url }}" target="_blank" class="btn btn-primary"><x-heroicon-o-arrow-down-tray class="size-4"/> Unduh Sertifikat</a>
+                    @if($r->has_certificate)
+                        <a href="{{ $r->certificate_download_url }}" target="_blank" class="btn btn-primary"><x-heroicon-o-arrow-down-tray class="size-4"/> Unduh Sertifikat (PDF)</a>
                     @else
-                        <p class="text-sm text-slate-600">File sertifikat digital belum diunggah. Silakan <a href="{{ wa_link('Halo Admin, saya ingin meminta file sertifikat '.$r->certificate_number) }}" class="font-semibold text-brand-700 hover:underline" target="_blank" rel="noopener">hubungi admin</a>.</p>
+                        <p class="text-sm text-slate-600">Sertifikat dapat diunduh setelah pembayaran diverifikasi. <a href="{{ route('registrations.show', $r->code) }}" class="font-semibold text-brand-700 hover:underline">Lihat status pembayaran</a>.</p>
                     @endif
                 </div>
             @endif

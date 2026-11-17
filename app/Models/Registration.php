@@ -23,10 +23,15 @@ class Registration extends Model
     ];
 
     protected $fillable = [
-        'training_id', 'code', 'name', 'nip', 'position', 'institution', 'institution_address', 'city',
+        'training_id', 'invoice_id', 'code', 'name', 'nip', 'position', 'institution', 'institution_address', 'city',
         'email', 'phone', 'package', 'price', 'notes', 'status', 'payment_status', 'certificate_number',
-        'certificate_file',
+        'certificate_issued_at', 'certificate_file',
     ];
+
+    protected function casts(): array
+    {
+        return ['certificate_issued_at' => 'datetime', 'price' => 'integer'];
+    }
 
     protected static function booted(): void
     {
@@ -38,6 +43,63 @@ class Registration extends Model
                 $r->code = $code;
             }
         });
+
+        // Rows created outside the public form (admin, seeder) still need a bill.
+        static::created(function (Registration $r) {
+            if (! $r->invoice_id) {
+                Invoice::createFor(collect([$r]));
+                $r->refresh();
+            }
+        });
+
+        static::saved(function (Registration $r) {
+            if ($r->invoice_id && $r->wasChanged(['price', 'status', 'invoice_id'])) {
+                $r->invoice?->recalculate();
+            }
+        });
+
+        static::deleted(fn (Registration $r) => $r->invoice?->recalculate());
+    }
+
+    public function invoice(): BelongsTo
+    {
+        return $this->belongsTo(Invoice::class);
+    }
+
+    /** Give this participant a certificate number (idempotent). Format comes from site settings. */
+    public function issueCertificate(): bool
+    {
+        if ($this->certificate_number || $this->status !== 'attended') {
+            return false;
+        }
+
+        $date = $this->training?->end_date ?? now();
+        $format = setting('certificate_number_format', '{no}/PD-SRT/{bulan}/{tahun}');
+        $seq = static::whereYear('certificate_issued_at', $date->year)->count() + 1;
+
+        do {
+            $number = strtr($format, [
+                '{no}' => str_pad((string) $seq++, 4, '0', STR_PAD_LEFT),
+                '{bulan}' => roman_month($date->month),
+                '{tahun}' => $date->format('Y'),
+                '{kegiatan}' => (string) $this->training_id,
+            ]);
+        } while (static::where('certificate_number', $number)->exists());
+
+        return $this->update(['certificate_number' => $number, 'certificate_issued_at' => now()]);
+    }
+
+    /** Certificate can be shown/downloaded publicly. */
+    public function getHasCertificateAttribute(): bool
+    {
+        return $this->status === 'attended'
+            && filled($this->certificate_number)
+            && (! setting('certificate_require_paid', '1') || $this->payment_status === 'paid' || $this->certificate_file);
+    }
+
+    public function getCertificateDownloadUrlAttribute(): ?string
+    {
+        return $this->has_certificate ? route('certificates.download', $this->code) : null;
     }
 
     public function training(): BelongsTo

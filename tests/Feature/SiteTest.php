@@ -7,13 +7,16 @@ use App\Filament\Pages\Settings;
 use App\Filament\Resources;
 use App\Filament\Widgets;
 use App\Models\Gallery;
+use App\Models\Invoice;
 use App\Models\Post;
 use App\Models\Registration;
 use App\Models\Training;
 use App\Models\User;
 use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
 use Tests\TestCase;
 
@@ -60,10 +63,8 @@ class SiteTest extends TestCase
         $training = Training::upcoming()->get()->first(fn ($t) => $t->can_register);
 
         $response = $this->post(route('registrations.store', $training), [
-            'name' => 'Peserta Uji',
             'institution' => 'BPKAD Uji',
-            'email' => 'uji@example.com',
-            'phone' => '081234567890',
+            'participants' => [['name' => 'Peserta Uji', 'email' => 'uji@example.com', 'phone' => '081234567890']],
             'package' => $training->prices[0]['name'],
             'agree' => '1',
         ]);
@@ -71,17 +72,117 @@ class SiteTest extends TestCase
         $registration = Registration::where('email', 'uji@example.com')->firstOrFail();
         $response->assertRedirect(route('registrations.show', $registration->code));
         $this->assertSame((int) $training->prices[0]['price'], (int) $registration->price);
+        $this->assertSame($registration->price, $registration->invoice->amount);
         Mail::assertSent(\App\Mail\RegistrationReceived::class);
-        $this->get(route('registrations.show', $registration->code))->assertOk()->assertSee($registration->code);
+        $this->get(route('registrations.show', $registration->code))->assertOk()->assertSee($registration->code)->assertSee($registration->invoice->number);
     }
 
-    public function test_registration_rejects_unknown_package_and_missing_consent(): void
+    public function test_group_registration_shares_one_invoice(): void
+    {
+        Mail::fake();
+        $training = Training::upcoming()->get()->first(fn ($t) => $t->can_register && $t->remaining_quota >= 3);
+        $price = (int) $training->prices[0]['price'];
+
+        $this->post(route('registrations.store', $training), [
+            'institution' => 'Pemkab Rombongan',
+            'participants' => [
+                ['name' => 'Ketua Rombongan', 'email' => 'ketua@example.com', 'phone' => '081234567890'],
+                ['name' => 'Anggota Satu', 'nip' => '1990', 'position' => 'Bendahara'],
+                ['name' => 'Anggota Dua', 'email' => 'dua@example.com'],
+            ],
+            'package' => $training->prices[0]['name'],
+            'agree' => '1',
+        ])->assertSessionHasNoErrors();
+
+        $invoice = Invoice::where('institution', 'Pemkab Rombongan')->firstOrFail();
+        $this->assertSame(3, $invoice->registrations()->count());
+        $this->assertSame($price * 3, $invoice->amount);
+        $this->assertSame('Ketua Rombongan', $invoice->contact_name);
+        // Missing contact details fall back to the group contact.
+        $this->assertSame('ketua@example.com', Registration::where('name', 'Anggota Satu')->value('email'));
+        $this->assertSame('dua@example.com', Registration::where('name', 'Anggota Dua')->value('email'));
+        Mail::assertSent(\App\Mail\RegistrationReceived::class, 1);
+    }
+
+    public function test_registration_rejects_unknown_package_missing_consent_and_contact(): void
     {
         $training = Training::upcoming()->get()->first(fn ($t) => $t->can_register);
 
         $this->post(route('registrations.store', $training), [
-            'name' => 'X', 'institution' => 'Y', 'email' => 'x@example.com', 'phone' => '081234567890', 'package' => 'Paket Palsu',
-        ])->assertSessionHasErrors(['package', 'agree']);
+            'institution' => 'Y',
+            'participants' => [['name' => 'X'], ['name' => '']],
+            'package' => 'Paket Palsu',
+        ])->assertSessionHasErrors(['package', 'agree', 'participants.0.email', 'participants.0.phone', 'participants.1.name']);
+    }
+
+    public function test_payment_proof_upload_verification_and_documents(): void
+    {
+        Mail::fake();
+        Storage::fake('public');
+        $registration = Registration::where('payment_status', 'unpaid')->where('status', '!=', 'cancelled')->firstOrFail();
+        $invoice = $registration->invoice;
+        $this->assertSame('unpaid', $invoice->status);
+
+        $this->get(route('registrations.invoice', $registration->code))->assertOk()->assertHeader('content-type', 'application/pdf');
+        $this->get(route('registrations.receipt', $registration->code))->assertNotFound();
+
+        $this->post(route('registrations.proof', $registration->code), ['proof' => UploadedFile::fake()->image('bukti.jpg')])
+            ->assertRedirect(route('registrations.show', $registration->code));
+        $invoice->refresh();
+        $this->assertSame('waiting', $invoice->status);
+        Storage::disk('public')->assertExists($invoice->payment_proof);
+        Mail::assertSent(\App\Mail\PaymentProofUploaded::class);
+
+        // Admin rejects, participant re-uploads, admin verifies.
+        $this->actingAs(User::first());
+        Livewire::test(Resources\Invoices\Pages\ManageInvoices::class)
+            ->callTableAction('reject', $invoice, ['reason' => 'Nominal kurang'])
+            ->assertHasNoTableActionErrors();
+        $this->assertSame('unpaid', $invoice->fresh()->status);
+        $this->get(route('registrations.show', $registration->code))->assertSee('Nominal kurang');
+
+        $this->post(route('registrations.proof', $registration->code), ['proof' => UploadedFile::fake()->create('bukti.pdf', 100, 'application/pdf')]);
+        Livewire::test(Resources\Invoices\Pages\ManageInvoices::class)
+            ->callTableAction('verify', $invoice->fresh());
+
+        $invoice->refresh();
+        $this->assertSame('paid', $invoice->status);
+        $this->assertNotNull($invoice->receipt_number);
+        $this->assertSame('paid', $registration->fresh()->payment_status);
+        Mail::assertSent(\App\Mail\PaymentVerified::class);
+        $this->get(route('registrations.receipt', $registration->code))->assertOk()->assertHeader('content-type', 'application/pdf');
+
+        // Paid invoices no longer accept proofs.
+        $this->post(route('registrations.proof', $registration->code), ['proof' => UploadedFile::fake()->image('lagi.jpg')])->assertForbidden();
+    }
+
+    public function test_certificates_are_numbered_and_downloadable(): void
+    {
+        $registration = Registration::where('status', 'confirmed')->firstOrFail();
+        $registration->invoice->markPaid(notify: false);
+        $registration->update(['status' => 'attended']);
+
+        $this->assertTrue($registration->fresh()->issueCertificate());
+        $registration->refresh();
+        $this->assertMatchesRegularExpression('#^\d{4}/PD-SRT/[IVX]+/\d{4}$#', $registration->certificate_number);
+        $this->assertFalse($registration->issueCertificate(), 'Issuing twice must keep the first number.');
+
+        $this->get('/sertifikat?kode='.urlencode($registration->certificate_number))->assertSee($registration->certificate_download_url);
+        $this->get(route('certificates.download', $registration->code))->assertOk()->assertHeader('content-type', 'application/pdf');
+
+        // Unpaid participants cannot download until payment is verified.
+        $unpaid = Registration::where('payment_status', 'unpaid')->where('status', '!=', 'cancelled')->firstOrFail();
+        $unpaid->update(['status' => 'attended']);
+        $unpaid->issueCertificate();
+        $this->get(route('certificates.download', $unpaid->code))->assertNotFound();
+        $this->actingAs(User::first())->get(route('certificates.download', ['code' => $unpaid->code, 'preview' => 1]))->assertOk();
+    }
+
+    public function test_terbilang_helper(): void
+    {
+        $this->assertSame('satu juta lima ratus ribu', terbilang(1500000));
+        $this->assertSame('dua belas juta tiga ratus empat puluh lima ribu enam ratus tujuh puluh delapan', terbilang(12345678));
+        $this->assertSame('seribu seratus sebelas', terbilang(1111));
     }
 
     public function test_inhouse_and_contact_forms_store(): void
@@ -108,6 +209,7 @@ class SiteTest extends TestCase
             Resources\Trainings\TrainingResource::getUrl('edit', ['record' => $training]),
             Resources\Registrations\RegistrationResource::getUrl('index'),
             Resources\Registrations\RegistrationResource::getUrl('edit', ['record' => Registration::first()]),
+            Resources\Invoices\InvoiceResource::getUrl('index'),
             Resources\Posts\PostResource::getUrl('index'),
             Resources\Posts\PostResource::getUrl('create'),
             Resources\Posts\PostResource::getUrl('edit', ['record' => Post::first()]),

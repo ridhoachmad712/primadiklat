@@ -21,6 +21,9 @@ Route::get('/kegiatan/{training}/undangan.pdf', [TrainingController::class, 'inv
 Route::get('/kegiatan/{training}/daftar', [RegistrationController::class, 'create'])->name('registrations.create');
 Route::post('/kegiatan/{training}/daftar', [RegistrationController::class, 'store'])->middleware('throttle:10,1')->name('registrations.store');
 Route::get('/pendaftaran/{code}', [RegistrationController::class, 'show'])->name('registrations.show');
+Route::post('/pendaftaran/{code}/bukti-bayar', [RegistrationController::class, 'uploadProof'])->middleware('throttle:6,1')->name('registrations.proof');
+Route::get('/pendaftaran/{code}/invoice.pdf', [RegistrationController::class, 'invoice'])->name('registrations.invoice');
+Route::get('/pendaftaran/{code}/kuitansi.pdf', [RegistrationController::class, 'receipt'])->name('registrations.receipt');
 
 Route::get('/berita', [PostController::class, 'index'])->name('posts.index');
 Route::get('/berita/{post}', [PostController::class, 'show'])->name('posts.show');
@@ -29,6 +32,7 @@ Route::get('/galeri', [GalleryController::class, 'index'])->name('galleries.inde
 Route::get('/galeri/{gallery}', [GalleryController::class, 'show'])->name('galleries.show');
 
 Route::get('/sertifikat', [CertificateController::class, 'index'])->middleware('throttle:30,1')->name('certificates.index');
+Route::get('/sertifikat/{code}/unduh', [CertificateController::class, 'download'])->middleware('throttle:30,1')->name('certificates.download');
 
 Route::get('/in-house-training', [ContactController::class, 'inhouse'])->name('inhouse.create');
 Route::post('/in-house-training', [ContactController::class, 'storeInhouse'])->middleware('throttle:5,1')->name('inhouse.store');

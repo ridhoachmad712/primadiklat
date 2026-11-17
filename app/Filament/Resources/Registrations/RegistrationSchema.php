@@ -2,8 +2,10 @@
 
 namespace App\Filament\Resources\Registrations;
 
+use App\Models\Invoice;
 use App\Models\Registration;
 use App\Models\Training;
+use Filament\Notifications\Notification;
 use App\Support\RegistrationExporter;
 use Filament\Actions\Action;
 use Filament\Actions\BulkAction;
@@ -67,9 +69,11 @@ class RegistrationSchema
                 Textarea::make('notes')->label('Catatan')->rows(2)->columnSpanFull(),
             ]),
             Section::make('Sertifikat')->columns(2)->columnSpanFull()->collapsible()->schema([
-                TextInput::make('certificate_number')->label('Nomor sertifikat')->unique(ignoreRecord: true),
+                TextInput::make('certificate_number')->label('Nomor sertifikat')->unique(ignoreRecord: true)
+                    ->helperText('Kosongkan lalu pakai aksi "Terbitkan nomor sertifikat" agar nomor dibuat otomatis.'),
                 FileUpload::make('certificate_file')
-                    ->label('File sertifikat (PDF/JPG)')
+                    ->label('File sertifikat manual (opsional)')
+                    ->helperText('Jika diisi, file ini dipakai menggantikan sertifikat otomatis.')
                     ->disk('public')
                     ->directory('certificates')
                     ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png'])
@@ -94,6 +98,8 @@ class RegistrationSchema
             TextColumn::make('payment_status')->label('Bayar')->badge()
                 ->formatStateUsing(fn ($state) => Registration::PAYMENT_STATUSES[$state] ?? $state)
                 ->color(fn ($state) => ['unpaid' => 'gray', 'paid' => 'success', 'refunded' => 'danger'][$state] ?? 'gray'),
+            TextColumn::make('invoice.number')->label('Tagihan')->fontFamily('mono')->size('sm')->toggleable(isToggledHiddenByDefault: true)->searchable(),
+            TextColumn::make('certificate_number')->label('No. sertifikat')->fontFamily('mono')->size('sm')->toggleable(isToggledHiddenByDefault: true)->searchable(),
             TextColumn::make('created_at')->label('Daftar')->since()->sortable()->dateTimeTooltip('d M Y H:i'),
         ]));
     }
@@ -117,6 +123,15 @@ class RegistrationSchema
             ), shouldOpenInNewTab: true);
     }
 
+    public static function certificateAction(): Action
+    {
+        return Action::make('certificate')
+            ->label('Sertifikat PDF')
+            ->icon(Heroicon::OutlinedAcademicCap)
+            ->visible(fn (Registration $r) => $r->status === 'attended' && filled($r->certificate_number))
+            ->url(fn (Registration $r) => route('certificates.download', ['code' => $r->code, 'preview' => 1]), shouldOpenInNewTab: true);
+    }
+
     public static function bulkActions(): array
     {
         return [
@@ -130,9 +145,23 @@ class RegistrationSchema
                     ->action(fn (Collection $records, array $data) => $records->each->update(['status' => $data['status']]))
                     ->deselectRecordsAfterCompletion(),
                 BulkAction::make('mark_paid')
-                    ->label('Tandai lunas')
+                    ->label('Tandai lunas (per tagihan)')
                     ->icon(Heroicon::OutlinedBanknotes)
-                    ->action(fn (Collection $records) => $records->each->update(['payment_status' => 'paid']))
+                    ->requiresConfirmation()
+                    ->modalDescription('Seluruh tagihan dari peserta terpilih ditandai lunas, termasuk rekan satu rombongannya. Kuitansi dan email konfirmasi diterbitkan otomatis.')
+                    ->action(fn (Collection $records) => $records->load('invoice')->pluck('invoice')->filter()->unique('id')
+                        ->reject(fn (Invoice $invoice) => $invoice->status === 'paid')
+                        ->each(fn (Invoice $invoice) => $invoice->markPaid(auth()->user())))
+                    ->deselectRecordsAfterCompletion(),
+                BulkAction::make('issue_certificates')
+                    ->label('Terbitkan nomor sertifikat')
+                    ->icon(Heroicon::OutlinedAcademicCap)
+                    ->requiresConfirmation()
+                    ->modalDescription('Nomor sertifikat dibuat untuk peserta terpilih yang berstatus "Hadir / Lulus" dan belum memiliki nomor.')
+                    ->action(function (Collection $records) {
+                        $n = $records->load('training')->filter(fn (Registration $r) => $r->issueCertificate())->count();
+                        Notification::make()->title("{$n} sertifikat diterbitkan")->success()->send();
+                    })
                     ->deselectRecordsAfterCompletion(),
                 BulkAction::make('export')
                     ->label('Ekspor terpilih (Excel)')

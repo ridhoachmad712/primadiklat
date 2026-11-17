@@ -9,6 +9,7 @@ use Filament\Actions\Action;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Filament\Schemas\Components\Actions;
@@ -102,6 +103,22 @@ class Settings extends Page
                             TextInput::make('invitation_signatory')->label('Jabatan penanda tangan undangan'),
                             TextInput::make('invitation_signatory_name')->label('Nama penanda tangan'),
                         ]),
+                        Textarea::make('payment_instructions')->label('Petunjuk pembayaran')->rows(2)->helperText('Tampil di halaman status pendaftaran, di bawah info rekening.'),
+                    ]),
+                    Tab::make('Sertifikat')->icon(Heroicon::OutlinedAcademicCap)->schema([
+                        Grid::make(2)->schema([
+                            TextInput::make('certificate_number_format')->label('Format nomor sertifikat')->required()
+                                ->helperText('Kode: {no} nomor urut per tahun, {bulan} bulan romawi, {tahun}, {kegiatan} ID kegiatan.'),
+                            Toggle::make('certificate_require_paid')->label('Wajib lunas untuk unduh sertifikat')->inline(false)
+                                ->formatStateUsing(fn ($state) => (bool) (int) $state)
+                                ->dehydrateStateUsing(fn ($state) => $state ? '1' : '0'),
+                            TextInput::make('certificate_signatory')->label('Jabatan penanda tangan'),
+                            TextInput::make('certificate_signatory_name')->label('Nama penanda tangan'),
+                        ]),
+                        TextInput::make('certificate_text')->label('Kalimat pengantar')->helperText('Tampil di atas nama kegiatan.'),
+                        FileUpload::make('certificate_background')->label('Latar sertifikat (opsional)')->image()->disk('public')->directory('settings')
+                            ->maxSize(4096)
+                            ->helperText('Gambar A4 landscape (3508×2480 px). Jika kosong, dipakai bingkai bawaan. Biarkan area tengah kosong untuk teks.'),
                     ]),
                 ]),
             ]);

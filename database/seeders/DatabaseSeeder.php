@@ -118,6 +118,7 @@ class DatabaseSeeder extends Seeder
                         'status' => $t->is_finished ? 'attended' : ['pending', 'confirmed', 'confirmed'][array_rand([0, 1, 2])],
                         'payment_status' => $t->is_finished ? 'paid' : ['unpaid', 'paid'][array_rand([0, 1])],
                         'certificate_number' => $t->is_finished ? sprintf('PD/%s/%04d', $t->end_date->format('Y'), Registration::count() + 1) : null,
+                        'certificate_issued_at' => $t->is_finished ? $t->end_date : null,
                         'created_at' => $t->start_date->copy()->subDays(random_int(3, 120))->min(now())->setTime(random_int(8, 20), random_int(0, 59)),
                     ]);
                 }

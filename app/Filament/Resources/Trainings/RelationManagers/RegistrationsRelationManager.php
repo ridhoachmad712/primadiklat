@@ -9,6 +9,7 @@ use Filament\Actions\ActionGroup;
 use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
+use Filament\Notifications\Notification;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
@@ -49,12 +50,24 @@ class RegistrationsRelationManager extends RelationManager
                         $this->getOwnerRecord()->registrations()->get(),
                         'peserta-'.$this->getOwnerRecord()->slug
                     )),
+                Action::make('issue_certificates')
+                    ->label('Terbitkan sertifikat')
+                    ->color('gray')
+                    ->icon(Heroicon::OutlinedAcademicCap)
+                    ->requiresConfirmation()
+                    ->modalDescription('Nomor sertifikat dibuat otomatis untuk semua peserta berstatus "Hadir / Lulus" yang belum memiliki nomor. Peserta lalu dapat mengunduh sertifikat PDF di menu Cek Sertifikat.')
+                    ->action(function () {
+                        $n = $this->getOwnerRecord()->registrations()->with('training')->where('status', 'attended')->whereNull('certificate_number')
+                            ->orderBy('name')->get()->filter(fn ($r) => $r->issueCertificate())->count();
+                        Notification::make()->title($n ? "{$n} sertifikat diterbitkan" : 'Tidak ada peserta baru yang perlu diterbitkan')->success()->send();
+                    }),
                 CreateAction::make()->label('Tambah peserta'),
             ])
             ->recordActions([
                 ActionGroup::make([
                     EditAction::make(),
                     RegistrationSchema::whatsappAction(),
+                    RegistrationSchema::certificateAction(),
                     DeleteAction::make(),
                 ]),
             ])

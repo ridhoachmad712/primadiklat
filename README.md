@@ -10,7 +10,9 @@ Website informasi dan pendaftaran Bimtek & Diklat, dibangun dengan **Laravel 12*
 - Kalender bulanan
 - Detail kegiatan: jadwal, lokasi, kuota, paket biaya, fasilitas, materi, tombol bagikan, dan schema.org Event untuk SEO
 - **Surat undangan PDF otomatis** per kegiatan, untuk keperluan SPPD
-- **Pendaftaran online**: kode pendaftaran, email konfirmasi ke peserta, dan notifikasi ke admin
+- **Pendaftaran online, perorangan maupun rombongan** (hingga 20 peserta dari satu instansi dengan satu tagihan): kode pendaftaran per peserta, email konfirmasi, dan notifikasi ke admin
+- **Halaman status pendaftaran**: daftar peserta, total tagihan, **unggah bukti transfer**, serta unduh **invoice** dan **kuitansi PDF** (dengan terbilang) untuk SPJ
+- **Sertifikat otomatis PDF** dengan **QR verifikasi**; nomor dibuat sesuai format di Pengaturan, dan latar sertifikat bisa diganti
 - **Cek & unduh sertifikat** berdasarkan kode pendaftaran atau nomor sertifikat
 - Form **in-house training** dan form kontak
 - Berita/artikel, galeri (dengan lightbox), FAQ, halaman statis, dan pencarian
@@ -19,7 +21,8 @@ Website informasi dan pendaftaran Bimtek & Diklat, dibangun dengan **Laravel 12*
 **Panel admin** (`/admin`)
 - Dasbor: statistik, grafik pendaftar per bulan, kegiatan terdekat, dan pendaftar terbaru
 - Kegiatan: paket biaya, fasilitas, brosur PDF, tombol duplikat, serta daftar peserta per kegiatan
-- Pendaftar: tab per status, ubah status massal, tandai lunas, tombol WhatsApp ke peserta, **ekspor Excel**, dan unggah sertifikat
+- Pendaftar: tab per status, ubah status massal, tombol WhatsApp ke peserta, **ekspor Excel**, terbitkan nomor sertifikat, dan pratinjau sertifikat PDF
+- **Tagihan & Pembayaran**: lihat bukti transfer, **verifikasi lunas** (kuitansi dan email terbit otomatis), atau tolak bukti beserta alasannya
 - Kategori, Berita, Galeri, Testimoni, Mitra, FAQ, Halaman Statis
 - Pesan masuk: permintaan in-house dan pesan kontak
 - Pengaturan situs: identitas, beranda, kontak, media sosial, rekening, dan penanda tangan undangan
@@ -50,7 +53,8 @@ Seeder mengisi data contoh (kategori, 12 kegiatan, pendaftar, berita, testimoni,
 
 | Kebutuhan | Tempat |
 |---|---|
-| Nomor WhatsApp, kontak, rekening, dan penanda tangan undangan | Admin → Pengaturan Situs |
+| Nomor WhatsApp, kontak, rekening, dan penanda tangan undangan/invoice/kuitansi | Admin → Pengaturan Situs |
+| Format nomor sertifikat, penanda tangan, latar, dan aturan wajib lunas | Admin → Pengaturan Situs → Sertifikat |
 | Pengiriman email (SMTP) | `.env`: `MAIL_MAILER`, `MAIL_HOST`, dst. Bawaan `log` hanya menulis ke `storage/logs` |
 | Zona waktu | `.env`: `APP_TIMEZONE` (bawaan `Asia/Jakarta`) |
 
