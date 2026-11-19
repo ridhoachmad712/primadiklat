@@ -13,7 +13,7 @@
 /.zed
 /auth.json
 /node_modules
-/public/build
+# /public/build is committed: the shared host has no Node.js to build assets
 /public/css/filament
 /public/fonts/filament
 /public/hot
