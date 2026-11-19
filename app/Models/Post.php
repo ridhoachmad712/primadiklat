@@ -22,12 +22,15 @@ class Post extends Model
 
     protected $fillable = [
         'user_id', 'title', 'slug', 'category', 'excerpt', 'content', 'thumbnail', 'is_published',
-        'published_at', 'meta_title', 'meta_description',
+        'published_at', 'meta_title', 'meta_description', 'image_alt', 'noindex', 'focus_keyword',
     ];
+
+    protected string $publicRoute = 'posts.show';
 
     protected $casts = [
         'is_published' => 'boolean',
         'published_at' => 'datetime',
+        'noindex' => 'boolean',
     ];
 
     public function author(): BelongsTo

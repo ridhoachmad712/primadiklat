@@ -27,6 +27,6 @@ class Venue extends Model
 
     public function getLabelAttribute(): string
     {
-        return $this->city.' — '.$this->name;
+        return $this->city.' · '.$this->name;
     }
 }

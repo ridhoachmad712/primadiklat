@@ -6,7 +6,7 @@
 @section('content')
 <x-page-header :title="$gallery->title" eyebrow="Galeri" :subtitle="$gallery->description" :crumbs="['Galeri' => route('galleries.index'), \Illuminate\Support\Str::limit($gallery->title, 40) => null]">
     @if($gallery->training)
-        <a href="{{ route('trainings.show', $gallery->training) }}" class="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-brand-700 hover:underline">Lihat kegiatan: {{ $gallery->training->title }} →</a>
+        <a href="{{ route('trainings.show', $gallery->training) }}" class="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-brand-700 hover:underline">Lihat kegiatan: {{ $gallery->training->title }}</a>
     @endif
 </x-page-header>
 

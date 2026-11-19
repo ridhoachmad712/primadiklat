@@ -5,11 +5,10 @@ namespace App\Http\Controllers;
 use App\Models\Category;
 use App\Models\Partner;
 use App\Models\Post;
-use App\Models\Registration;
 use App\Models\ScheduleDate;
+use App\Models\Setting;
 use App\Models\Testimonial;
 use App\Models\Topic;
-use App\Models\Training;
 use App\Models\Venue;
 
 class HomeController extends Controller
@@ -18,29 +17,40 @@ class HomeController extends Controller
     {
         $openDates = ScheduleDate::open()->get();
         $year = $openDates->first()?->start_date->year ?? now()->year;
-        $yearDates = ScheduleDate::active()->whereYear('start_date', $year)->get();
         $topics = Topic::active()->with('category')->get();
-        $venues = Venue::active()->get();
+        $cities = Venue::active()->get()->groupBy('city');
+        $config = collect(Setting::homeSections())->where('enabled', true)->keyBy('key');
+        $limit = fn (string $key, int $fallback) => $config->get($key)['limit'] ?? $fallback;
 
-        return view('home', [
+        $data = [
             'year' => $year,
             'openDates' => $openDates,
-            'yearDates' => $yearDates,
-            'yearMonths' => $yearDates->groupBy(fn ($d) => $d->start_date->month),
+            'yearCount' => ScheduleDate::active()->whereYear('start_date', $year)->count(),
             'topics' => $topics,
-            'featuredTopics' => $topics->sortByDesc('is_featured')->take(6),
-            'venues' => $venues,
-            'cities' => $venues->groupBy('city'),
+            // Featured first, then admin sort order.
+            'featuredTopics' => $topics->values()->sortBy(fn ($t, $i) => [$t->is_featured ? 0 : 1, $i])->take($limit('topics', 6))->values(),
+            'cities' => $cities,
             'categories' => Category::active()->withCount(['topics' => fn ($q) => $q->where('is_active', true)])->get()->where('topics_count', '>', 0),
-            'posts' => Post::published()->take(3)->get(),
-            'testimonials' => Testimonial::active()->take(6)->get(),
+            'posts' => $config->has('posts') ? Post::published()->take($limit('posts', 3))->get() : collect(),
+            'testimonials' => $config->has('testimonials') ? Testimonial::active()->take($limit('testimonials', 3))->get() : collect(),
             'partners' => Partner::active()->get(),
-            'stats' => [
-                'alumni' => (int) setting('stat_alumni', Registration::where('status', 'attended')->count()),
-                'trainings' => (int) setting('stat_trainings', Training::published()->count()),
-                'partners' => (int) setting('stat_partners', Registration::distinct('institution')->count('institution')),
-                'years' => (int) setting('stat_years', 1),
-            ],
-        ]);
+            'legal' => Setting::legalItems(),
+            'contacts' => Setting::contacts(),
+            'stats' => array_filter([
+                'Alumni peserta' => filled(setting('stat_alumni')) ? number_format((int) setting('stat_alumni'), 0, ',', '.').'+' : null,
+                'Tahun pengalaman' => filled(setting('stat_years')) ? (int) setting('stat_years').'+' : null,
+                'Kota pelaksanaan' => $cities->count() ?: null,
+            ]),
+        ];
+
+        // Sections with nothing to show are skipped so the page never renders an empty block.
+        $data['sections'] = $config->filter(fn ($s) => match ($s['key']) {
+            'testimonials' => $data['testimonials']->isNotEmpty(),
+            'posts' => $data['posts']->isNotEmpty(),
+            'trust' => $data['legal'] || $data['stats'] || $data['partners']->isNotEmpty(),
+            default => true,
+        })->values();
+
+        return view('home', $data);
     }
 }

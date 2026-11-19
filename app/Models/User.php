@@ -8,6 +8,7 @@ use Filament\Panel;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Validation\ValidationException;
 
 class User extends Authenticatable implements FilamentUser
 {
@@ -34,6 +35,29 @@ class User extends Authenticatable implements FilamentUser
         'role' => self::ROLE_EDITOR,
         'is_active' => true,
     ];
+
+    /** The panel must always keep at least one active super admin. */
+    protected static function booted(): void
+    {
+        static::updating(function (User $user) {
+            $wasActiveSuper = $user->getOriginal('role') === self::ROLE_SUPER_ADMIN && $user->getOriginal('is_active');
+            $staysActiveSuper = $user->role === self::ROLE_SUPER_ADMIN && $user->is_active;
+            if ($wasActiveSuper && ! $staysActiveSuper && ! static::otherActiveSuperAdminExists($user)) {
+                throw ValidationException::withMessages(['role' => 'Harus ada minimal satu Super Admin aktif. Tambahkan Super Admin lain terlebih dahulu.']);
+            }
+        });
+
+        static::deleting(function (User $user) {
+            if ($user->role === self::ROLE_SUPER_ADMIN && $user->is_active && ! static::otherActiveSuperAdminExists($user)) {
+                throw ValidationException::withMessages(['role' => 'Super Admin terakhir tidak dapat dihapus.']);
+            }
+        });
+    }
+
+    public static function otherActiveSuperAdminExists(User $except): bool
+    {
+        return static::where('role', self::ROLE_SUPER_ADMIN)->where('is_active', true)->whereKeyNot($except->getKey())->exists();
+    }
 
     protected function casts(): array
     {

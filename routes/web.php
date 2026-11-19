@@ -8,6 +8,7 @@ use App\Http\Controllers\PageController;
 use App\Http\Controllers\PostController;
 use App\Http\Controllers\RegistrationController;
 use App\Http\Controllers\ScheduleController;
+use App\Http\Controllers\SeoController;
 use App\Http\Controllers\TopicController;
 use App\Http\Controllers\SitemapController;
 use App\Http\Controllers\TrainingController;
@@ -55,3 +56,5 @@ Route::get('/halaman/{page}', [PageController::class, 'show'])->name('pages.show
 Route::redirect('/tentang-kami', '/halaman/tentang-kami')->name('about');
 
 Route::get('/sitemap.xml', SitemapController::class)->name('sitemap');
+Route::get('/robots.txt', [SeoController::class, 'robots'])->name('robots');
+Route::get('/og-image.png', [SeoController::class, 'ogImage'])->name('og.default');

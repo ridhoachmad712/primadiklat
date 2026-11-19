@@ -9,7 +9,9 @@ class Page extends Model
 {
     use HasSlug;
 
-    protected $fillable = ['title', 'slug', 'content', 'is_published', 'meta_description'];
+    protected $fillable = ['title', 'slug', 'content', 'is_published', 'meta_title', 'meta_description', 'noindex'];
 
-    protected $casts = ['is_published' => 'boolean'];
+    protected string $publicRoute = 'pages.show';
+
+    protected $casts = ['is_published' => 'boolean', 'noindex' => 'boolean'];
 }

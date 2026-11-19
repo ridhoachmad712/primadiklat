@@ -20,6 +20,8 @@ class Topic extends Model
 
     protected $attributes = ['type' => 'bimtek', 'is_active' => true, 'is_featured' => false, 'sort_order' => 0];
 
+    protected string $publicRoute = 'topics.show';
+
     protected $casts = ['is_active' => 'boolean', 'is_featured' => 'boolean'];
 
     public function category(): BelongsTo

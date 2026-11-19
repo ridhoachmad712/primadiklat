@@ -26,7 +26,7 @@
 
 <header x-data="{ open: false, search: false }" class="sticky top-0 z-30 border-b border-slate-200/70 bg-white/85 backdrop-blur-md">
     <div class="container-x flex h-16 items-center justify-between gap-4">
-        <a href="{{ route('home') }}" class="flex shrink-0 items-center gap-2.5" aria-label="{{ setting('site_name') }}">
+        <a href="{{ route('home') }}" class="tap flex shrink-0 items-center gap-2.5" aria-label="{{ setting('site_name') }}">
             @if(setting('logo'))
                 <img src="{{ storage_url(setting('logo')) }}" alt="{{ setting('site_name') }}" class="h-9 w-auto">
             @else
@@ -35,7 +35,7 @@
                 </span>
                 <span class="leading-tight">
                     <span class="block text-[15px] font-extrabold tracking-tight text-slate-900">Prima<span class="text-brand-600">Diklat</span></span>
-                    <span class="block text-[10px] font-medium tracking-wide text-slate-400 uppercase">Bimtek & Diklat</span>
+                    <span class="block text-[10px] font-medium tracking-wide text-slate-500 uppercase">Bimtek & Diklat</span>
                 </span>
             @endif
         </a>
@@ -47,7 +47,7 @@
         </nav>
 
         <div class="flex items-center gap-1.5">
-            <button type="button" @click="search = !search; $nextTick(() => $refs.q?.focus())" class="btn-ghost btn !p-2.5" aria-label="Cari">
+            <button type="button" @click="search = !search; $nextTick(() => $refs.q?.focus())" class="btn-ghost btn !p-3" aria-label="Cari">
                 <x-heroicon-o-magnifying-glass class="size-5"/>
             </button>
             <a href="{{ route('register.create') }}" class="btn btn-primary hidden sm:inline-flex">Daftar Sekarang</a>
@@ -68,12 +68,12 @@
     <div x-show="open" x-collapse x-cloak class="border-t border-slate-100 lg:hidden">
         <nav class="container-x grid gap-1 py-3">
             @foreach($nav as [$label, $url, $active])
-                <a href="{{ $url }}" @class(['rounded-lg px-3 py-2.5 text-sm font-medium', 'bg-brand-50 text-brand-700' => $active, 'text-slate-700 hover:bg-slate-50' => ! $active])>{{ $label }}</a>
+                <a href="{{ $url }}" @class(['rounded-lg px-3 py-3 text-sm font-medium', 'bg-brand-50 text-brand-700' => $active, 'text-slate-700 hover:bg-slate-50' => ! $active])>{{ $label }}</a>
             @endforeach
             <div class="my-2 border-t border-slate-100"></div>
-            <a href="{{ route('certificates.index') }}" class="rounded-lg px-3 py-2.5 text-sm text-slate-600 hover:bg-slate-50">Cek Sertifikat</a>
-            <a href="{{ route('faq') }}" class="rounded-lg px-3 py-2.5 text-sm text-slate-600 hover:bg-slate-50">FAQ</a>
-            <a href="{{ route('about') }}" class="rounded-lg px-3 py-2.5 text-sm text-slate-600 hover:bg-slate-50">Tentang Kami</a>
+            <a href="{{ route('certificates.index') }}" class="rounded-lg px-3 py-3 text-sm text-slate-600 hover:bg-slate-50">Cek Sertifikat</a>
+            <a href="{{ route('faq') }}" class="rounded-lg px-3 py-3 text-sm text-slate-600 hover:bg-slate-50">FAQ</a>
+            <a href="{{ route('about') }}" class="rounded-lg px-3 py-3 text-sm text-slate-600 hover:bg-slate-50">Tentang Kami</a>
         </nav>
     </div>
 </header>

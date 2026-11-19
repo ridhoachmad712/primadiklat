@@ -24,7 +24,10 @@ Website informasi dan pendaftaran Bimtek & Diklat, dibangun dengan **Laravel 12*
 - **Cek & unduh sertifikat** berdasarkan kode pendaftaran atau nomor sertifikat
 - Form **in-house training** dan form kontak
 - Berita/artikel, galeri (dengan lightbox), FAQ, halaman statis, dan pencarian
-- Tombol WhatsApp melayang, meta SEO/Open Graph, `sitemap.xml`, dan `robots.txt`
+- Tombol WhatsApp melayang, meta SEO/Open Graph, `sitemap.xml`, dan `robots.txt` dinamis (alamat sitemap lengkap, halaman status pendaftaran tidak diindeks)
+- **SEO per artikel, kegiatan, dan halaman statis**: judul dan deskripsi SEO dengan penghitung karakter, pratinjau tampilan di Google, teks alternatif gambar, opsi "sembunyikan dari mesin pencari", schema.org `Article`/`NewsArticle`, dan gambar bagikan bawaan yang dibuat otomatis (`/og-image.png`)
+- **Skor SEO artikel (0–100)** yang diperbarui saat menulis, berdasarkan kata kunci utama, struktur isi, dan keterbacaan, lengkap dengan saran perbaikan. Skor juga tampil sebagai kolom di daftar artikel
+- **Redirect 301 otomatis**: jika slug artikel, kegiatan, tema, galeri, atau halaman diubah, URL lama dialihkan ke URL baru
 
 **Panel admin** (`/admin`)
 - Dasbor: statistik, grafik pendaftar per bulan, kegiatan terdekat, dan pendaftar terbaru
@@ -34,7 +37,7 @@ Website informasi dan pendaftaran Bimtek & Diklat, dibangun dengan **Laravel 12*
 - Kategori, Berita, Galeri, Testimoni, Mitra, FAQ, Halaman Statis
 - Pesan masuk: permintaan in-house dan pesan kontak
 - Pengaturan situs: identitas, beranda, kontak, media sosial, rekening, dan penanda tangan undangan
-- Hak akses: **Super Admin**, **Editor Konten**, **Admin Pendaftaran**
+- Hak akses: **Super Admin** (semua menu, akun admin, pengaturan), **Editor Konten** (kegiatan, jadwal, tema, konten website; tidak melihat data peserta maupun pemasukan), **Admin Pendaftaran** (pendaftar, tagihan, pesan masuk; dapat melihat kelas beserta pesertanya dan mengonfirmasi kelas dari tema usulan, tetapi tidak mengubah isi kelas). Peran akun sendiri tidak dapat diubah, dan Super Admin aktif terakhir tidak dapat diturunkan, dinonaktifkan, atau dihapus
 
 ## Instalasi lokal
 
@@ -63,6 +66,8 @@ Seeder mengisi data contoh (kategori, 12 kegiatan, pendaftar, berita, testimoni,
 |---|---|
 | Nomor WhatsApp, kontak, rekening, dan penanda tangan undangan/invoice/kuitansi | Admin → Pengaturan Situs |
 | Format nomor sertifikat, penanda tangan, latar, dan aturan wajib lunas | Admin → Pengaturan Situs → Sertifikat |
+| Tampilan beranda: teks dan foto hero, warna utama, urutan dan tampil/sembunyi tiap bagian, judul, teks pengantar, jumlah item, serta angka alumni dan lama pengalaman (dikosongkan = tidak tampil) | Admin → Pengaturan Situs → Beranda |
+| Legalitas lembaga dan narahubung WhatsApp di beranda | Admin → Pengaturan Situs → Legalitas / Kontak |
 | Pengiriman email (SMTP) | `.env`: `MAIL_MAILER`, `MAIL_HOST`, dst. Bawaan `log` hanya menulis ke `storage/logs` |
 | Zona waktu | `.env`: `APP_TIMEZONE` (bawaan `Asia/Jakarta`) |
 

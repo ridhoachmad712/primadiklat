@@ -28,17 +28,17 @@
         @if(session('success'))
             <div class="mb-6 flex gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-5 text-emerald-800"><x-heroicon-s-check-circle class="size-6 shrink-0"/><p>{{ session('success') }}</p></div>
         @endif
-        <form method="POST" action="{{ route('contact.store') }}" class="card space-y-5 p-6 sm:p-8">
+        <form method="POST" action="{{ route('contact.store') }}" class="card space-y-5 p-4 sm:p-8">
             @csrf
             <input type="text" name="website" class="hidden" tabindex="-1" autocomplete="off" aria-hidden="true">
             <div class="grid gap-5 sm:grid-cols-2">
                 <div>
-                    <label class="label" for="name">Nama <span class="text-rose-500">*</span></label>
+                    <label class="label" for="name">Nama <span class="text-rose-600">*</span></label>
                     <input id="name" name="name" value="{{ old('name') }}" required class="input">
                     @error('name')<p class="error">{{ $message }}</p>@enderror
                 </div>
                 <div>
-                    <label class="label" for="email">Email <span class="text-rose-500">*</span></label>
+                    <label class="label" for="email">Email <span class="text-rose-600">*</span></label>
                     <input id="email" type="email" name="email" value="{{ old('email') }}" required class="input">
                     @error('email')<p class="error">{{ $message }}</p>@enderror
                 </div>
@@ -47,13 +47,13 @@
                     <input id="phone" type="tel" name="phone" value="{{ old('phone') }}" class="input">
                 </div>
                 <div>
-                    <label class="label" for="subject">Subjek <span class="text-rose-500">*</span></label>
+                    <label class="label" for="subject">Subjek <span class="text-rose-600">*</span></label>
                     <input id="subject" name="subject" value="{{ old('subject') }}" required class="input">
                     @error('subject')<p class="error">{{ $message }}</p>@enderror
                 </div>
             </div>
             <div>
-                <label class="label" for="message">Pesan <span class="text-rose-500">*</span></label>
+                <label class="label" for="message">Pesan <span class="text-rose-600">*</span></label>
                 <textarea id="message" name="message" rows="5" required class="input">{{ old('message') }}</textarea>
                 @error('message')<p class="error">{{ $message }}</p>@enderror
             </div>

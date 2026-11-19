@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Trainings;
 
+use App\Filament\Forms\SeoFields;
 use App\Filament\Concerns\RestrictedByRole;
 use App\Filament\Resources\Trainings\Pages;
 use App\Filament\Resources\Trainings\RelationManagers\RegistrationsRelationManager;
@@ -42,13 +43,19 @@ use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
+use Filament\Actions\ViewAction;
+use Filament\Notifications\Notification;
+use Illuminate\Auth\Access\Response;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
 use UnitEnum;
 
 class TrainingResource extends Resource
 {
-    use RestrictedByRole;
+    use RestrictedByRole {
+        getAuthorizationResponse as roleAuthorizationResponse;
+    }
 
     protected static ?string $model = Training::class;
 
@@ -69,6 +76,43 @@ class TrainingResource extends Resource
     public static function allowedRoles(): array
     {
         return [User::ROLE_EDITOR];
+    }
+
+    /**
+     * Editors manage classes. Registration staff may open them read-only (to see
+     * participants) and confirm classes from proposed topics, but not edit them.
+     */
+    public static function getAuthorizationResponse(string $action, ?Model $record = null): Response
+    {
+        if (static::isRegistrarOnly()) {
+            return in_array($action, ['viewAny', 'view'], true)
+                ? Response::allow()
+                : Response::deny('Admin Pendaftaran hanya dapat melihat dan mengonfirmasi kelas.');
+        }
+
+        return static::roleAuthorizationResponse($action, $record);
+    }
+
+    public static function isRegistrarOnly(): bool
+    {
+        return auth()->user()?->role === User::ROLE_REGISTRAR;
+    }
+
+    /** A class formed from a topic proposed by a participant, waiting for confirmation. */
+    public static function confirmProposalAction(): Action
+    {
+        return Action::make('confirm_proposal')->label('Konfirmasi tema usulan')
+            ->icon(Heroicon::OutlinedCheckBadge)->color('success')
+            ->visible(fn (Training $record) => $record->status === 'draft' && $record->topic_id === null && $record->schedule_date_id !== null
+                && (bool) auth()->user()?->hasRole(User::ROLE_EDITOR, User::ROLE_REGISTRAR))
+            ->requiresConfirmation()
+            ->modalHeading('Konfirmasi kelas dari tema usulan?')
+            ->modalDescription('Kelas akan diterbitkan sehingga tampil di website dan peserta dapat mengunduh surat undangan.')
+            ->modalSubmitActionLabel('Ya, terbitkan kelas')
+            ->action(function (Training $record) {
+                $record->update(['status' => 'published']);
+                Notification::make()->title('Kelas diterbitkan')->success()->send();
+            });
     }
 
     public static function getNavigationBadge(): ?string
@@ -147,10 +191,8 @@ class TrainingResource extends Resource
                                 ->placeholder('Ketik lalu Enter')
                                 ->suggestions(['Modul / bahan ajar', 'Training kit', 'Sertifikat', 'Makan siang', 'Coffee break 2x', 'Penginapan hotel', 'Penjemputan bandara', 'Konsultasi pasca pelatihan']),
                         ]),
-                        Tab::make('SEO')->icon(Heroicon::OutlinedMagnifyingGlass)->schema([
-                            TextInput::make('meta_title')->label('Judul SEO')->maxLength(70)->helperText('Kosongkan untuk memakai judul kegiatan.'),
-                            Textarea::make('meta_description')->label('Deskripsi SEO')->rows(2)->maxLength(160),
-                        ]),
+                        Tab::make('SEO')->icon(Heroicon::OutlinedMagnifyingGlass)
+                            ->schema(SeoFields::make('trainings.show', 'description', 'excerpt', imageAlt: true, wide: false)),
                     ])->persistTabInQueryString(),
                 ]),
 
@@ -244,9 +286,13 @@ class TrainingResource extends Resource
                 SelectFilter::make('category_id')->label('Kategori')->relationship('category', 'name')->searchable()->preload(),
                 Filter::make('upcoming')->label('Hanya yang akan datang')->query(fn (Builder $query) => $query->whereDate('end_date', '>=', today()))->toggle(),
                 TernaryFilter::make('is_featured')->label('Unggulan'),
+                Filter::make('proposals')->label('Tema usulan perlu konfirmasi')->toggle()
+                    ->query(fn (Builder $query) => $query->where('status', 'draft')->whereNull('topic_id')->whereNotNull('schedule_date_id')),
             ])
             ->recordActions([
+                static::confirmProposalAction(),
                 ActionGroup::make([
+                    ViewAction::make()->label('Lihat'),
                     EditAction::make(),
                     Action::make('view_site')->label('Lihat di website')->icon(Heroicon::OutlinedArrowTopRightOnSquare)
                         ->url(fn (Training $r) => route('trainings.show', $r), shouldOpenInNewTab: true),
@@ -279,6 +325,7 @@ class TrainingResource extends Resource
         return [
             'index' => Pages\ListTrainings::route('/'),
             'create' => Pages\CreateTraining::route('/create'),
+            'view' => Pages\ViewTraining::route('/{record}'),
             'edit' => Pages\EditTraining::route('/{record}/edit'),
         ];
     }

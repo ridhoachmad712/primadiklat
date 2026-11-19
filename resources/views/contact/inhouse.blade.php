@@ -4,7 +4,7 @@
 @section('description', 'Selenggarakan bimtek dan diklat khusus di instansi Anda. Materi, jadwal, dan lokasi disesuaikan dengan kebutuhan.')
 
 @section('content')
-<x-page-header title="In-House Training" eyebrow="Pelatihan Khusus Instansi" subtitle="Pelatihan yang dirancang khusus untuk instansi Anda — materi, jadwal, narasumber, dan lokasi menyesuaikan kebutuhan." :crumbs="['In-House Training' => null]"/>
+<x-page-header title="In-House Training" eyebrow="Pelatihan Khusus Instansi" subtitle="Pelatihan yang dirancang khusus untuk instansi Anda: materi, jadwal, narasumber, dan lokasi menyesuaikan kebutuhan." :crumbs="['In-House Training' => null]"/>
 
 <div class="container-x grid gap-12 py-12 lg:grid-cols-5">
     <div class="lg:col-span-2">
@@ -33,17 +33,17 @@
         @if(session('success'))
             <div class="mb-6 flex gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-5 text-emerald-800"><x-heroicon-s-check-circle class="size-6 shrink-0"/><p>{{ session('success') }}</p></div>
         @endif
-        <form method="POST" action="{{ route('inhouse.store') }}" class="card space-y-5 p-6 sm:p-8">
+        <form method="POST" action="{{ route('inhouse.store') }}" class="card space-y-5 p-4 sm:p-8">
             @csrf
             <input type="text" name="website" class="hidden" tabindex="-1" autocomplete="off" aria-hidden="true">
             <div>
-                <label class="label" for="institution">Nama instansi <span class="text-rose-500">*</span></label>
+                <label class="label" for="institution">Nama instansi <span class="text-rose-600">*</span></label>
                 <input id="institution" name="institution" value="{{ old('institution') }}" required class="input">
                 @error('institution')<p class="error">{{ $message }}</p>@enderror
             </div>
             <div class="grid gap-5 sm:grid-cols-2">
                 <div>
-                    <label class="label" for="contact_name">Nama penanggung jawab <span class="text-rose-500">*</span></label>
+                    <label class="label" for="contact_name">Nama penanggung jawab <span class="text-rose-600">*</span></label>
                     <input id="contact_name" name="contact_name" value="{{ old('contact_name') }}" required class="input">
                     @error('contact_name')<p class="error">{{ $message }}</p>@enderror
                 </div>
@@ -52,18 +52,18 @@
                     <input id="position" name="position" value="{{ old('position') }}" class="input">
                 </div>
                 <div>
-                    <label class="label" for="email">Email <span class="text-rose-500">*</span></label>
+                    <label class="label" for="email">Email <span class="text-rose-600">*</span></label>
                     <input id="email" type="email" name="email" value="{{ old('email') }}" required class="input">
                     @error('email')<p class="error">{{ $message }}</p>@enderror
                 </div>
                 <div>
-                    <label class="label" for="phone">No. HP / WhatsApp <span class="text-rose-500">*</span></label>
+                    <label class="label" for="phone">No. HP / WhatsApp <span class="text-rose-600">*</span></label>
                     <input id="phone" type="tel" name="phone" value="{{ old('phone') }}" required class="input">
                     @error('phone')<p class="error">{{ $message }}</p>@enderror
                 </div>
             </div>
             <div>
-                <label class="label" for="topic">Topik pelatihan yang dibutuhkan <span class="text-rose-500">*</span></label>
+                <label class="label" for="topic">Topik pelatihan yang dibutuhkan <span class="text-rose-600">*</span></label>
                 <input id="topic" name="topic" value="{{ old('topic') }}" required class="input" placeholder="Contoh: Penyusunan Laporan Keuangan SKPD">
                 @error('topic')<p class="error">{{ $message }}</p>@enderror
             </div>

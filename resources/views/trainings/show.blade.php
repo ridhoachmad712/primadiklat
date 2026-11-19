@@ -4,6 +4,8 @@
 @section('description', $training->meta_description ?: ($training->excerpt ?: strip_tags((string) $training->description)))
 @if($training->thumbnail_url) @section('og_image', $training->thumbnail_url) @endif
 @section('og_type', 'article')
+@if($training->noindex) @section('noindex', '1') @endif
+@if($training->thumbnail_url && $training->image_alt) @section('og_image_alt', $training->image_alt) @endif
 
 @push('head')
 <script type="application/ld+json">
@@ -25,6 +27,8 @@
 ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) !!}
 </script>
 @endpush
+
+@section('mobile_cta', $training->can_register ? route('registrations.create', $training) : route('register.create'))
 
 @section('content')
 @php
@@ -56,12 +60,12 @@
     </div>
 </section>
 
-<div class="container-x grid gap-10 py-10 lg:grid-cols-3">
+<div class="container-x grid gap-8 py-6 sm:py-10 lg:grid-cols-3 lg:gap-10">
     {{-- MAIN --}}
     <div class="min-w-0 lg:col-span-2">
         <div class="aspect-[16/9] overflow-hidden rounded-2xl bg-slate-100">
             @if($t->thumbnail_url)
-                <img src="{{ $t->thumbnail_url }}" alt="{{ $t->title }}" class="size-full object-cover">
+                <img src="{{ $t->thumbnail_url }}" alt="{{ $t->image_alt ?: $t->title }}" class="size-full object-cover">
             @else
                 <x-placeholder-cover :seed="$t->id" :label="$t->type_label"/>
             @endif
@@ -132,9 +136,9 @@
 
             <div x-show="tab === 'lokasi'" x-cloak class="mt-8">
                 @if($t->method === 'online')
-                    <div class="card p-6"><p class="font-semibold">Kegiatan dilaksanakan secara daring (online).</p><p class="mt-1 text-sm text-slate-600">Tautan Zoom Meeting dikirim ke email dan WhatsApp peserta H-1.</p></div>
+                    <div class="card p-4 sm:p-6"><p class="font-semibold">Kegiatan dilaksanakan secara daring (online).</p><p class="mt-1 text-sm text-slate-600">Tautan Zoom Meeting dikirim ke email dan WhatsApp peserta H-1.</p></div>
                 @else
-                    <div class="card p-6">
+                    <div class="card p-4 sm:p-6">
                         <p class="font-semibold text-slate-900">{{ $t->venue ?? 'Tempat akan diinformasikan' }}</p>
                         <p class="mt-1 text-sm text-slate-600">{{ $t->venue_address }} {{ $t->city ? '· '.$t->city : '' }}</p>
                         @if($t->venue || $t->venue_address)
@@ -159,7 +163,7 @@
 
     {{-- SIDEBAR --}}
     <aside class="lg:col-span-1">
-        <div class="card sticky top-24 p-6">
+        <div class="card sticky top-24 p-4 sm:p-6">
             <p class="text-xs text-slate-500">Biaya mulai dari</p>
             <p class="text-3xl font-extrabold tracking-tight text-slate-900">{{ $t->lowest_price ? rupiah($t->lowest_price) : 'Hubungi kami' }}</p>
 
@@ -207,7 +211,7 @@
 @if($related->isNotEmpty())
 <section class="container-x py-12">
     <h2 class="text-xl font-bold">Kegiatan lain yang mungkin Anda minati</h2>
-    <div class="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+    <div class="swipe-row mt-6 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3">
         @foreach($related as $r)<x-training-card :training="$r"/>@endforeach
     </div>
 </section>

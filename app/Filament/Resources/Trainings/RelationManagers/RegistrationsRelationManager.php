@@ -24,6 +24,12 @@ class RegistrationsRelationManager extends RelationManager
 
     protected static ?string $modelLabel = 'peserta';
 
+    /** Participant data is personal: registration staff only (editors still see the count in the list). */
+    public static function canViewForRecord(Model $ownerRecord, string $pageClass): bool
+    {
+        return (bool) auth()->user()?->hasRole(\App\Models\User::ROLE_REGISTRAR);
+    }
+
     public static function getBadge(Model $ownerRecord, string $pageClass): ?string
     {
         return (string) $ownerRecord->registrations()->count();

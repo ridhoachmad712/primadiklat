@@ -4,6 +4,7 @@ namespace App\Filament\Widgets;
 
 use App\Filament\Resources\Registrations\RegistrationResource;
 use App\Models\Registration;
+use App\Models\User;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Filament\Widgets\TableWidget;
@@ -15,6 +16,12 @@ class LatestRegistrations extends TableWidget
     protected static ?string $heading = 'Pendaftar terbaru';
 
     protected int|string|array $columnSpan = 'full';
+
+    /** Participant names and institutions are personal data: registration staff only. */
+    public static function canView(): bool
+    {
+        return (bool) auth()->user()?->hasRole(User::ROLE_REGISTRAR);
+    }
 
     public function table(Table $table): Table
     {

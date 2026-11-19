@@ -1,8 +1,8 @@
-            <fieldset class="card p-6">
+            <fieldset class="card p-4 sm:p-6">
                 <h2 class="text-lg font-bold">Instansi</h2>
-                <div class="mt-6 grid gap-5 sm:grid-cols-2">
+                <div class="mt-5 grid gap-4 sm:mt-6 sm:grid-cols-2 sm:gap-5">
                     <div class="sm:col-span-2">
-                        <label for="institution" class="label">Nama instansi / OPD <span class="text-rose-500">*</span></label>
+                        <label for="institution" class="label">Nama instansi / OPD <span class="text-rose-600">*</span></label>
                         <input id="institution" name="institution" value="{{ old('institution') }}" required class="input" placeholder="BPKAD Kabupaten …">
                         @error('institution')<p class="error">{{ $message }}</p>@enderror
                     </div>
@@ -17,7 +17,7 @@
                 </div>
             </fieldset>
 
-            <fieldset class="card p-6">
+            <fieldset class="card p-4 sm:p-6">
                 <div class="flex flex-wrap items-end justify-between gap-3">
                     <div>
                         <h2 class="text-lg font-bold">Data Peserta</h2>
@@ -28,7 +28,7 @@
                 @error('participants')<p class="error mt-3">{{ $message }}</p>@enderror
 
                 <template x-for="(p, i) in people" :key="p.key">
-                    <div class="mt-6 rounded-xl border border-slate-200 p-5">
+                    <div class="mt-5 rounded-xl border border-slate-200 p-3.5 sm:mt-6 sm:p-5">
                         <div class="mb-4 flex items-center justify-between">
                             <p class="text-sm font-semibold text-slate-900">
                                 Peserta <span x-text="i + 1"></span>
@@ -38,9 +38,9 @@
                                 <x-heroicon-o-trash class="size-4"/> Hapus
                             </button>
                         </div>
-                        <div class="grid gap-5 sm:grid-cols-2">
+                        <div class="grid gap-4 sm:grid-cols-2 sm:gap-5">
                             <div class="sm:col-span-2">
-                                <label class="label" :for="'p'+i+'name'">Nama lengkap & gelar <span class="text-rose-500">*</span></label>
+                                <label class="label" :for="'p'+i+'name'">Nama lengkap & gelar <span class="text-rose-600">*</span></label>
                                 <input :id="'p'+i+'name'" :name="'participants['+i+'][name]'" x-model="p.name" required class="input" autocomplete="name">
                                 <p class="error" x-show="err(i, 'name')" x-text="err(i, 'name')"></p>
                             </div>
@@ -54,12 +54,12 @@
                                 <input :id="'p'+i+'position'" :name="'participants['+i+'][position]'" x-model="p.position" class="input" placeholder="Kasubbag Keuangan">
                             </div>
                             <div>
-                                <label class="label" :for="'p'+i+'email'">Email <span x-show="i === 0" class="text-rose-500">*</span></label>
+                                <label class="label" :for="'p'+i+'email'">Email <span x-show="i === 0" class="text-rose-600">*</span></label>
                                 <input :id="'p'+i+'email'" type="email" :name="'participants['+i+'][email]'" x-model="p.email" :required="i === 0" class="input" :placeholder="i === 0 ? '' : 'Kosongkan jika sama dengan kontak utama'">
                                 <p class="error" x-show="err(i, 'email')" x-text="err(i, 'email')"></p>
                             </div>
                             <div>
-                                <label class="label" :for="'p'+i+'phone'">No. HP / WhatsApp <span x-show="i === 0" class="text-rose-500">*</span></label>
+                                <label class="label" :for="'p'+i+'phone'">No. HP / WhatsApp <span x-show="i === 0" class="text-rose-600">*</span></label>
                                 <input :id="'p'+i+'phone'" type="tel" :name="'participants['+i+'][phone]'" x-model="p.phone" :required="i === 0" class="input" placeholder="08xxxxxxxxxx">
                                 <p class="error" x-show="err(i, 'phone')" x-text="err(i, 'phone')"></p>
                             </div>

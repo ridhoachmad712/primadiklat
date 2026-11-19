@@ -1,6 +1,7 @@
 @extends('layouts.app')
 
-@section('title', $page->title)
+@section('title', $page->meta_title ?: $page->title)
+@if($page->noindex) @section('noindex', '1') @endif
 @section('description', $page->meta_description ?: \Illuminate\Support\Str::limit(strip_tags((string) $page->content), 160))
 
 @section('content')

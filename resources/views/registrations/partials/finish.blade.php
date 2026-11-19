@@ -1,4 +1,4 @@
-            <div class="card p-6">
+            <div class="card p-4 sm:p-6">
                 <label for="notes" class="label">Catatan (opsional)</label>
                 <textarea id="notes" name="notes" rows="3" class="input" placeholder="Contoh: kebutuhan khusus, permintaan kamar, dll.">{{ old('notes') }}</textarea>
                 <label class="mt-5 flex items-start gap-3 text-sm text-slate-600">

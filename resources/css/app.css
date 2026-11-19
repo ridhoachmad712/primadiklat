@@ -58,7 +58,7 @@
         @apply text-slate-700 hover:bg-slate-100;
     }
     .btn-wa {
-        @apply bg-emerald-500 text-white hover:bg-emerald-600;
+        @apply bg-emerald-700 text-white hover:bg-emerald-800;
     }
     .card {
         @apply rounded-2xl border border-slate-200/80 bg-white;
@@ -73,13 +73,42 @@
         @apply text-2xl font-bold sm:text-3xl;
     }
     .input {
-        @apply block w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 transition focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 focus:outline-none;
+        @apply block w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-base text-slate-900 sm:text-sm placeholder:text-slate-500 transition focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 focus:outline-none;
     }
     .label {
         @apply mb-1.5 block text-sm font-medium text-slate-700;
     }
     .error {
         @apply mt-1 text-xs text-rose-600;
+    }
+    /* Mobile: horizontal swipe row; sm+: normal grid (set grid-cols on the element). */
+    .swipe-row {
+        @apply -mx-4 flex snap-x snap-mandatory scroll-px-4 gap-4 overflow-x-auto px-4 pb-3 sm:mx-0 sm:grid sm:snap-none sm:overflow-visible sm:px-0 sm:pb-0;
+        scrollbar-width: none;
+    }
+    .swipe-row::-webkit-scrollbar {
+        display: none;
+    }
+    .swipe-row > * {
+        @apply w-[82%] max-w-sm shrink-0 snap-start sm:w-auto sm:max-w-none;
+    }
+    /* Mobile: single-line scrollable chips; sm+: wrap. */
+    .chip-row {
+        @apply -mx-4 flex gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0;
+        scrollbar-width: none;
+    }
+    .chip-row > * {
+        @apply shrink-0;
+    }
+    /* Touch devices: every tappable control is at least 44px tall (WCAG 2.5.5 / antislop R-03). */
+    @media (pointer: coarse) {
+        .btn, a.chip, .tap {
+            min-height: 2.75rem;
+        }
+        a.chip, .tap {
+            display: inline-flex;
+            align-items: center;
+        }
     }
     .nav-link {
         @apply rounded-lg px-3 py-2 text-sm font-medium text-slate-600 transition hover:text-slate-900;

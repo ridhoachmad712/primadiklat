@@ -2,8 +2,10 @@
 
 namespace App\Filament\Resources\Posts;
 
+use App\Filament\Forms\SeoFields;
 use App\Filament\Concerns\RestrictedByRole;
 use App\Models\Post;
+use App\Support\SeoAnalyzer;
 use BackedEnum;
 use Filament\Actions\ActionGroup;
 use Filament\Actions\BulkActionGroup;
@@ -57,19 +59,24 @@ class PostResource extends Resource
     {
         return $schema->components([
             Grid::make(3)->columnSpanFull()->schema([
-                Section::make()->columnSpan(2)->schema([
+                Group::make()->columnSpan(2)->schema([
+                Section::make()->schema([
                     TextInput::make('title')->label('Judul')->required()->maxLength(255)
-                        ->live(onBlur: true)
+                        ->live(debounce: 800)
                         ->afterStateUpdated(function (Set $set, Get $get, ?string $state, string $operation) {
                             if ($operation === 'create' || blank($get('slug'))) {
                                 $set('slug', Str::slug((string) $state));
                             }
                         }),
-                    TextInput::make('slug')->prefix(url('/berita').'/')->required()->unique(ignoreRecord: true),
-                    Textarea::make('excerpt')->label('Ringkasan')->rows(2)->maxLength(300),
+                    TextInput::make('slug')->prefix(url('/berita').'/')->required()->unique(ignoreRecord: true)->live(debounce: 800),
+                    Textarea::make('excerpt')->label('Ringkasan')->rows(2)->maxLength(300)->live(debounce: 800),
                     RichEditor::make('content')->label('Isi')
+                        ->live(debounce: 1200)
                         ->fileAttachmentsDisk('public')
                         ->fileAttachmentsDirectory('posts/content'),
+                    // Always-visible score in the screen corner, updated as the article is written.
+                    SeoFields::badge('content', 'excerpt'),
+                ]),
                 ]),
                 Group::make()->schema([
                     Section::make('Publikasi')->schema([
@@ -78,14 +85,13 @@ class PostResource extends Resource
                         Select::make('category')->label('Kategori')->options(Post::CATEGORIES)->default('berita')->native(false),
                     ]),
                     Section::make('Gambar')->schema([
-                        FileUpload::make('thumbnail')->hiddenLabel()->image()->imageEditor()->disk('public')->directory('posts')->maxSize(2048),
-                    ]),
-                    Section::make('SEO')->collapsed()->schema([
-                        TextInput::make('meta_title')->label('Judul SEO')->maxLength(70),
-                        Textarea::make('meta_description')->label('Deskripsi SEO')->rows(2)->maxLength(160),
+                        FileUpload::make('thumbnail')->hiddenLabel()->image()->imageEditor()->disk('public')->directory('posts')->maxSize(2048)->live(),
                     ]),
                 ]),
             ]),
+            // Full width below the editor and sidebar so it uses the whole page.
+            Section::make('SEO')->id('seo-panel')->description('Kata kunci, skor SEO, dan cara artikel tampil di Google.')->collapsible()->columnSpanFull()
+                ->schema(SeoFields::make('posts.show', 'content', 'excerpt', imageAlt: true, analyzer: true)),
         ]);
     }
 
@@ -97,6 +103,10 @@ class PostResource extends Resource
                 ImageColumn::make('thumbnail')->label('')->disk('public')->imageWidth(64)->imageHeight(40)->extraImgAttributes(['class' => 'rounded-md object-cover']),
                 TextColumn::make('title')->label('Judul')->searchable()->weight('semibold')->wrap()
                     ->description(fn (Post $r) => $r->category_label),
+                TextColumn::make('seo_score')->label('Skor SEO')->alignCenter()->badge()
+                    ->state(fn (Post $r) => SeoAnalyzer::forPost($r)['score'])
+                    ->color(fn (int $state) => match (SeoAnalyzer::level($state)) { 'good' => 'success', 'ok' => 'warning', default => 'danger' })
+                    ->tooltip(fn (Post $r) => $r->focus_keyword ? 'Kata kunci: '.$r->focus_keyword : 'Kata kunci utama belum diisi'),
                 TextColumn::make('published_at')->label('Terbit')->date('d M Y')->sortable(),
                 TextColumn::make('views')->label('Dilihat')->numeric()->sortable(),
                 ToggleColumn::make('is_published')->label('Terbit'),

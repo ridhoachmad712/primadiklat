@@ -22,7 +22,7 @@
         </div>
         <span class="absolute top-3 right-3 rounded-full px-2.5 py-1 text-[11px] font-semibold ring-1 ring-inset {{ $badge }} bg-opacity-95">{{ $label }}</span>
     </div>
-    <div class="flex flex-1 flex-col p-5">
+    <div class="flex flex-1 flex-col p-4 sm:p-5">
         <div class="flex flex-wrap items-center gap-1.5 text-xs">
             <span class="font-semibold text-brand-700">{{ $t->type_label }}</span>
             @if($t->category)<span class="text-slate-300">•</span><span class="text-slate-500">{{ $t->category->name }}</span>@endif
@@ -38,13 +38,13 @@
         <div class="flex items-end justify-between border-t border-slate-100 pt-4">
             <div>
                 @if($t->lowest_price)
-                    <span class="block text-[11px] text-slate-400">Mulai dari</span>
+                    <span class="block text-[11px] text-slate-500">Mulai dari</span>
                     <span class="text-base font-bold text-slate-900">{{ rupiah($t->lowest_price) }}</span>
                 @else
                     <span class="text-sm text-slate-500">Hubungi kami</span>
                 @endif
             </div>
-            <span class="inline-flex items-center gap-1 text-sm font-semibold text-brand-700">Detail <x-heroicon-m-arrow-right class="size-4 transition group-hover:translate-x-0.5"/></span>
+            <span class="inline-flex items-center gap-1 text-sm font-semibold text-brand-700">Detail</span>
         </div>
     </div>
 </article>

@@ -9,7 +9,7 @@
     :subtitle="$isArchive ? 'Kegiatan yang telah terselenggara.' : 'Pilih kegiatan, unduh undangan resmi, dan daftar online dalam hitungan menit.'"
     :crumbs="['Jadwal' => null]"/>
 
-<section class="container-x py-10" x-data="{ filters: false }">
+<section class="container-x py-6 sm:py-10" x-data="{ filters: false }">
     <form method="GET" class="card p-4">
         <div class="flex flex-col gap-3 lg:flex-row">
             <label class="relative flex-1">
@@ -39,9 +39,9 @@
     <div class="mt-8 flex flex-wrap items-center justify-between gap-3">
         <p class="text-sm text-slate-500">Menampilkan <strong class="text-slate-900">{{ $trainings->total() }}</strong> kegiatan</p>
         <div class="flex items-center gap-1 rounded-xl bg-slate-100 p-1 text-sm font-medium">
-            <a href="{{ route('trainings.index', collect($filters)->except('status')->all()) }}" @class(['rounded-lg px-3 py-1.5', 'bg-white text-slate-900 shadow-sm' => ! $isArchive, 'text-slate-500' => $isArchive])>Akan datang</a>
-            <a href="{{ route('trainings.index', array_merge($filters, ['status' => 'selesai'])) }}" @class(['rounded-lg px-3 py-1.5', 'bg-white text-slate-900 shadow-sm' => $isArchive, 'text-slate-500' => ! $isArchive])>Arsip</a>
-            <a href="{{ route('trainings.calendar') }}" class="rounded-lg px-3 py-1.5 text-slate-500">Kalender</a>
+            <a href="{{ route('trainings.index', collect($filters)->except('status')->all()) }}" @class(['tap rounded-lg px-3 py-1.5', 'bg-white text-slate-900 shadow-sm' => ! $isArchive, 'text-slate-600' => $isArchive])>Akan datang</a>
+            <a href="{{ route('trainings.index', array_merge($filters, ['status' => 'selesai'])) }}" @class(['tap rounded-lg px-3 py-1.5', 'bg-white text-slate-900 shadow-sm' => $isArchive, 'text-slate-600' => ! $isArchive])>Arsip</a>
+            <a href="{{ route('trainings.calendar') }}" class="tap rounded-lg px-3 py-1.5 text-slate-600">Kalender</a>
         </div>
     </div>
 
@@ -59,7 +59,7 @@
         <div class="card mt-8 flex flex-col items-center p-14 text-center">
             <span class="grid size-14 place-items-center rounded-2xl bg-slate-100 text-slate-400"><x-heroicon-o-calendar class="size-7"/></span>
             <h2 class="mt-4 text-lg font-semibold">Belum ada kegiatan yang cocok</h2>
-            <p class="mt-1 max-w-md text-sm text-slate-500">Coba ubah filter, atau hubungi kami — kami juga melayani penyelenggaraan in-house training sesuai kebutuhan.</p>
+            <p class="mt-1 max-w-md text-sm text-slate-500">Coba ubah filter, atau hubungi kami. Kami juga melayani penyelenggaraan in-house training sesuai kebutuhan.</p>
             <div class="mt-6 flex gap-2">
                 <a href="{{ route('trainings.index') }}" class="btn btn-outline">Reset filter</a>
                 <a href="{{ route('inhouse.create') }}" class="btn btn-primary">Ajukan In-House</a>

@@ -3,7 +3,36 @@
 @section('title', $post->meta_title ?: $post->title)
 @section('description', $post->meta_description ?: $post->summary)
 @section('og_type', 'article')
-@if($post->thumbnail_url) @section('og_image', $post->thumbnail_url) @endif
+@if($post->thumbnail_url) @section('og_image', $post->thumbnail_url) @section('og_image_alt', $post->image_alt ?: $post->title) @endif
+@if($post->noindex) @section('noindex', '1') @endif
+
+@push('head')
+    @php
+        $publisher = array_filter([
+            '@type' => 'Organization',
+            'name' => setting('site_name'),
+            'url' => route('home'),
+            'logo' => setting('logo') ? ['@type' => 'ImageObject', 'url' => storage_url(setting('logo'))] : null,
+        ]);
+    @endphp
+    @if($post->published_at)<meta property="article:published_time" content="{{ $post->published_at->toIso8601String() }}">@endif
+    <meta property="article:modified_time" content="{{ $post->updated_at->toIso8601String() }}">
+    <meta property="article:section" content="{{ $post->category_label }}">
+    <script type="application/ld+json">{!! json_encode(array_filter([
+        '@context' => 'https://schema.org',
+        '@type' => $post->category === 'berita' ? 'NewsArticle' : 'Article',
+        'headline' => \Illuminate\Support\Str::limit($post->meta_title ?: $post->title, 110, ''),
+        'description' => $post->meta_description ?: $post->summary,
+        'image' => [$post->thumbnail_url ?: (setting('og_image') ? storage_url(setting('og_image')) : route('og.default'))],
+        'datePublished' => $post->published_at?->toIso8601String(),
+        'dateModified' => $post->updated_at->toIso8601String(),
+        'author' => $post->author ? ['@type' => 'Person', 'name' => $post->author->name] : $publisher,
+        'publisher' => $publisher,
+        'articleSection' => $post->category_label,
+        'mainEntityOfPage' => ['@type' => 'WebPage', '@id' => route('posts.show', $post)],
+        'inLanguage' => 'id-ID',
+    ]), JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_HEX_TAG) !!}</script>
+@endpush
 
 @section('content')
 <article>
@@ -26,7 +55,7 @@
 
     <div class="container-x max-w-5xl">
         <div class="aspect-[2/1] overflow-hidden rounded-3xl bg-slate-100">
-            @if($post->thumbnail_url)<img src="{{ $post->thumbnail_url }}" alt="{{ $post->title }}" class="size-full object-cover">@else<x-placeholder-cover :seed="$post->id + 2"/>@endif
+            @if($post->thumbnail_url)<img src="{{ $post->thumbnail_url }}" alt="{{ $post->image_alt ?: $post->title }}" fetchpriority="high" class="size-full object-cover">@else<x-placeholder-cover :seed="$post->id + 2"/>@endif
         </div>
     </div>
 

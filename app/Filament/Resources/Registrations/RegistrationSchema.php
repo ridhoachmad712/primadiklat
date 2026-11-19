@@ -55,7 +55,7 @@ class RegistrationSchema
                         $trainingId = $get('training_id') ?? ($livewire->ownerRecord->id ?? null);
                         $prices = Training::find($trainingId)?->prices ?? [];
 
-                        return collect($prices)->mapWithKeys(fn ($p) => [$p['name'] => $p['name'].' — Rp '.number_format((int) $p['price'], 0, ',', '.')])->all();
+                        return collect($prices)->mapWithKeys(fn ($p) => [$p['name'] => $p['name'].' · Rp '.number_format((int) $p['price'], 0, ',', '.')])->all();
                     })
                     ->live()
                     ->afterStateUpdated(function (Set $set, Get $get, ?string $state, $livewire) {

@@ -1,6 +1,7 @@
 @extends('layouts.app')
 
 @section('title', $q ? 'Hasil pencarian: '.$q : 'Pencarian')
+@section('noindex', '1')
 
 @section('content')
 <x-page-header title="Pencarian" :crumbs="['Pencarian' => null]">
@@ -14,13 +15,13 @@
     @if(mb_strlen($q) < 2)
         <p class="text-slate-500">Ketik minimal 2 huruf untuk mencari.</p>
     @elseif($trainings->isEmpty() && $posts->isEmpty() && $topics->isEmpty() && $venues->isEmpty())
-        <div class="card p-10 text-center">
+        <div class="card p-6 sm:p-10 text-center">
             <p class="font-semibold">Tidak ada hasil untuk “{{ $q }}”</p>
             <p class="mt-1 text-sm text-slate-500">Coba kata kunci lain atau lihat <a href="{{ route('schedule.index') }}" class="text-brand-700 hover:underline">semua jadwal</a>.</p>
         </div>
     @else
         @if($topics->isNotEmpty())
-            <h2 class="mb-5 text-lg font-bold">Tema Bimtek <span class="font-normal text-slate-400">({{ $topics->count() }})</span></h2>
+            <h2 class="mb-5 text-lg font-bold">Tema Bimtek <span class="font-normal text-slate-500">({{ $topics->count() }})</span></h2>
             <div class="mb-14 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
                 @foreach($topics as $topic)<x-topic-card :topic="$topic"/>@endforeach
             </div>
@@ -38,13 +39,13 @@
             </div>
         @endif
         @if($trainings->isNotEmpty())
-            <h2 class="text-lg font-bold">Kegiatan <span class="font-normal text-slate-400">({{ $trainings->count() }})</span></h2>
+            <h2 class="text-lg font-bold">Kegiatan <span class="font-normal text-slate-500">({{ $trainings->count() }})</span></h2>
             <div class="mt-5 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
                 @foreach($trainings as $t)<x-training-card :training="$t"/>@endforeach
             </div>
         @endif
         @if($posts->isNotEmpty())
-            <h2 class="mt-14 text-lg font-bold">Artikel <span class="font-normal text-slate-400">({{ $posts->count() }})</span></h2>
+            <h2 class="mt-14 text-lg font-bold">Artikel <span class="font-normal text-slate-500">({{ $posts->count() }})</span></h2>
             <div class="mt-5 grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
                 @foreach($posts as $p)<x-post-card :post="$p"/>@endforeach
             </div>

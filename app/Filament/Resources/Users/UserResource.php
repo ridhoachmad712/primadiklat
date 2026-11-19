@@ -47,13 +47,18 @@ class UserResource extends Resource
             TextInput::make('name')->label('Nama')->required(),
             TextInput::make('email')->email()->required()->unique(ignoreRecord: true),
             Select::make('role')->label('Peran')->options(User::ROLES)->required()->native(false)
-                ->helperText('Editor: kegiatan & konten. Admin Pendaftaran: pendaftar & pesan masuk.'),
+                // Nobody can change their own role, so a super admin cannot lock themselves out.
+                ->disabled(fn (?User $record) => $record?->is(auth()->user()))
+                ->helperText(fn (?User $record) => $record?->is(auth()->user())
+                    ? 'Peran akun Anda sendiri tidak dapat diubah. Minta Super Admin lain bila perlu.'
+                    : 'Editor Konten: kegiatan, jadwal & konten website. Admin Pendaftaran: pendaftar, tagihan, pesan masuk, serta melihat & mengonfirmasi kelas.'),
             TextInput::make('password')->password()->revealable()
                 ->required(fn (string $operation) => $operation === 'create')
                 ->dehydrated(fn (?string $state) => filled($state))
                 ->minLength(8)
                 ->helperText(fn (string $operation) => $operation === 'edit' ? 'Kosongkan bila tidak diubah.' : null),
-            Toggle::make('is_active')->label('Aktif (boleh login)')->default(true),
+            Toggle::make('is_active')->label('Aktif (boleh login)')->default(true)
+                ->disabled(fn (?User $record) => $record?->is(auth()->user())),
         ]);
     }
 

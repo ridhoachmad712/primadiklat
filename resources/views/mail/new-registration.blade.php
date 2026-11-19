@@ -18,7 +18,7 @@
 **Peserta ({{ $people->count() }}):**
 
 @foreach($people as $p)
-- {{ $p->name }}@if($p->position) — {{ $p->position }}@endif ({{ $p->code }})
+- {{ $p->name }}@if($p->position), {{ $p->position }}@endif ({{ $p->code }})
 @endforeach
 
 <x-mail::button :url="url('/admin/registrations?tableSearch='.urlencode($registration->institution))">

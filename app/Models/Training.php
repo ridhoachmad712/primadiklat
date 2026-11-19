@@ -37,10 +37,13 @@ class Training extends Model
         'category_id', 'topic_id', 'schedule_date_id', 'venue_id', 'type', 'title', 'slug', 'excerpt', 'description', 'materials', 'target_participants',
         'thumbnail', 'brochure', 'start_date', 'end_date', 'registration_deadline', 'method', 'city', 'venue',
         'venue_address', 'quota', 'prices', 'facilities', 'status', 'is_featured', 'registration_open',
-        'meta_title', 'meta_description',
+        'meta_title', 'meta_description', 'image_alt', 'noindex',
     ];
 
+    protected string $publicRoute = 'trainings.show';
+
     protected $casts = [
+        'noindex' => 'boolean',
         'start_date' => 'date',
         'end_date' => 'date',
         'registration_deadline' => 'date',

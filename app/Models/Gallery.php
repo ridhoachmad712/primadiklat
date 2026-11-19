@@ -13,6 +13,8 @@ class Gallery extends Model
 
     protected $fillable = ['training_id', 'title', 'slug', 'description', 'event_date', 'images', 'is_published'];
 
+    protected string $publicRoute = 'galleries.show';
+
     protected $casts = [
         'event_date' => 'date',
         'images' => 'array',

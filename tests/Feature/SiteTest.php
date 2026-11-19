@@ -192,7 +192,7 @@ class SiteTest extends TestCase
         $this->assertSame('2027-01-08', $slot->end_date->toDateString());
 
         $this->get('/jadwal')->assertOk()->assertSee('Jadwal Bimtek 2027')->assertSee('Swiss-Belinn Panakkukang Makassar')->assertSee('07 – 08 Januari 2027');
-        $this->get('/')->assertOk()->assertSee('Januari – Desember 2027')->assertDontSee('Mulai Rp');
+        $this->get('/')->assertOk()->assertSee('Lihat jadwal 2027 (55 tanggal, 13 kota)')->assertDontSee('Mulai Rp');
     }
 
     public function test_open_schedule_registration_without_price(): void
@@ -370,6 +370,233 @@ class SiteTest extends TestCase
             ->assertHasNoFormErrors();
 
         $this->assertSame('Prima Diklat Baru', setting('site_name'));
+    }
+
+    public function test_homepage_shows_legal_and_contacts_from_settings(): void
+    {
+        $this->get('/')->assertOk()->assertSee('Pilih Tema Sesuai Kebutuhan Instansi')
+            ->assertDontSee('PT Prima Diklat Uji')
+            ->assertDontSee('Alumni peserta'); // no fabricated numbers by default
+
+        $this->actingAs(User::first());
+        Livewire::test(Settings::class)
+            ->fillForm([
+                'legal_name' => 'PT Prima Diklat Uji',
+                'legal_npwp' => '01.234.567.8-901.000',
+                'legal_other' => "Akreditasi LKPP: No. 12/2026\nTerdaftar di e-Katalog",
+                'contacts' => [['name' => 'Rina Lestari', 'role' => 'Admin Pendaftaran', 'whatsapp' => '6281299990000']],
+            ])
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        $this->get('/')->assertOk()
+            ->assertSee('Lembaga Resmi, Dipercaya Instansi')
+            ->assertSee('PT Prima Diklat Uji')
+            ->assertSee('Akreditasi LKPP')
+            ->assertSee('Terdaftar di e-Katalog')
+            ->assertSee('Rina Lestari')
+            ->assertSee('wa.me/6281299990000', false);
+
+        // Settings page re-opens with the stored contacts.
+        $this->assertSame('Rina Lestari', \App\Models\Setting::contacts()[0]['name']);
+        Livewire::test(Settings::class)->assertOk();
+    }
+
+    public function test_admin_controls_homepage_layout(): void
+    {
+        $this->actingAs(User::first());
+        $sections = collect(\App\Models\Setting::homeSections())->keyBy('key');
+
+        // Hide testimonials, move news to the top, retitle topics, change colour.
+        $layout = collect(['posts', 'topics', 'trust', 'testimonials', 'contacts'])->map(fn ($key) => array_merge(
+            collect($sections[$key])->except('label')->all(),
+            match ($key) {
+                'testimonials' => ['enabled' => false],
+                'topics' => ['title' => 'Katalog Bimtek Pilihan', 'eyebrow' => '', 'limit' => 2],
+                default => [],
+            },
+        ))->all();
+
+        Livewire::test(Settings::class)
+            ->fillForm(['home_sections' => $layout, 'brand_color' => 'green', 'stat_alumni' => '1250'])
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        $html = $this->get('/')->assertOk()
+            ->assertSee('Katalog Bimtek Pilihan')
+            ->assertDontSee('Apa Kata Alumni Peserta')
+            ->assertSee('1.250+')
+            ->assertSee('--color-brand-600:#15803d', false)
+            ->getContent();
+
+        $this->assertLessThan(strpos($html, 'id="topics"'), strpos($html, 'id="posts"'), 'News should render before topics.');
+        $this->assertSame(2, substr_count(substr($html, strpos($html, 'id="topics"'), strpos($html, 'id="trust"') - strpos($html, 'id="topics"')), '<article'));
+
+        // Settings page re-opens with the saved order.
+        Livewire::test(Settings::class)->assertOk();
+        $this->assertSame('posts', \App\Models\Setting::homeSections()[0]['key']);
+    }
+
+    public function test_article_seo_meta_schema_and_redirects(): void
+    {
+        $this->actingAs(User::first());
+        $post = Post::published()->first();
+
+        Livewire::test(\App\Filament\Resources\Posts\Pages\EditPost::class, ['record' => $post->getRouteKey()])
+            ->assertSee('Pratinjau di Google')
+            ->fillForm([
+                'meta_title' => 'Aturan Baru Keuangan Daerah 2027',
+                'meta_description' => 'Ringkasan perubahan aturan pengelolaan keuangan daerah 2027 dan dampaknya bagi OPD.',
+                'image_alt' => 'Suasana sosialisasi aturan keuangan daerah',
+                'slug' => 'aturan-baru-keuangan-daerah-2027',
+            ])
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        $oldSlug = $post->slug;
+        $post->refresh();
+        $html = $this->get(route('posts.show', $post))->assertOk()
+            ->assertSee('<title>Aturan Baru Keuangan Daerah 2027 | ', false)
+            ->assertSee('Ringkasan perubahan aturan pengelolaan keuangan daerah 2027', false)
+            ->assertSee('article:published_time', false)
+            ->assertDontSee('name="robots"', false)
+            ->getContent();
+
+        preg_match('#<script type="application/ld\+json">(.*?)</script>#s', $html, $m);
+        $schema = json_decode($m[1] ?? '', true);
+        $this->assertContains($schema['@type'] ?? null, ['Article', 'NewsArticle']);
+        $this->assertSame('Aturan Baru Keuangan Daerah 2027', $schema['headline']);
+        $this->assertNotEmpty($schema['datePublished']);
+        $this->assertSame(route('posts.show', $post), $schema['mainEntityOfPage']['@id']);
+
+        // Old URL now answers 301 to the new one, query string kept.
+        $this->get('/berita/'.$oldSlug.'?utm_source=wa')->assertStatus(301)->assertRedirect('/berita/aturan-baru-keuangan-daerah-2027?utm_source=wa');
+        $this->assertSame(1, \App\Models\Redirect::first()->hits);
+        $this->get('/berita/tidak-pernah-ada')->assertNotFound();
+
+        // Renaming again keeps a single hop from the oldest URL.
+        $post->update(['slug' => 'aturan-keuangan-daerah-2027']);
+        $this->get('/berita/'.$oldSlug)->assertRedirect('/berita/aturan-keuangan-daerah-2027');
+
+        // noindex: robots meta and removed from sitemap.
+        $post->update(['noindex' => true]);
+        $this->get(route('posts.show', $post))->assertSee('<meta name="robots" content="noindex, follow">', false);
+        $this->get('/sitemap.xml')->assertOk()->assertDontSee('aturan-keuangan-daerah-2027');
+
+        // Absolute sitemap URL in robots.txt; private pages blocked; default share image exists.
+        $this->get('/robots.txt')->assertOk()->assertSee('Sitemap: '.route('sitemap'))->assertSee('Disallow: /pendaftaran/');
+        Storage::fake('public');
+        $this->get('/og-image.png')->assertOk()->assertHeader('Content-Type', 'image/png');
+        $this->get('/')->assertSee('<meta property="og:image" content="'.route('og.default').'">', false);
+    }
+
+    public function test_seo_analyzer_scores_articles(): void
+    {
+        $sentence = 'Penyusunan laporan keuangan daerah harus tertib dan tepat waktu agar opini BPK tetap baik. ';
+        $filler = str_repeat('Bendahara perlu memahami alur penatausahaan secara rinci setiap bulan. ', 8);
+        $content = '<p>'.$sentence.$filler.'</p>'
+            .'<h2>Tahapan laporan keuangan daerah</h2><p>'.$filler.'</p>'
+            .'<h2>Kesalahan umum bendahara</h2><p>'.$filler.' Ikuti <a href="/tema">bimtek terkait</a>.</p>'
+            .'<h2>Persiapan audit</h2><p>'.$filler.'</p><p>'.$sentence.'</p>';
+
+        $good = (new \App\Support\SeoAnalyzer([
+            'title' => 'Laporan Keuangan Daerah: Panduan Lengkap Bendahara 2027',
+            'meta_title' => null,
+            'meta_description' => 'Panduan menyusun laporan keuangan daerah yang tertib dan tepat waktu, lengkap dengan tahapan dan kesalahan umum bendahara.',
+            'slug' => 'laporan-keuangan-daerah-panduan-bendahara',
+            'content' => $content,
+            'focus_keyword' => 'Laporan Keuangan Daerah',
+            'thumbnail' => 'posts/a.jpg',
+            'image_alt' => 'Bendahara menyusun laporan keuangan',
+        ]))->analyze();
+        $this->assertGreaterThanOrEqual(80, $good['score'], collect($good['checks'])->where('status', '!=', 'good')->pluck('label')->join('; '));
+        $this->assertSame('good', $good['level']);
+
+        $empty = (new \App\Support\SeoAnalyzer(['title' => 'Info', 'content' => '<p>Singkat.</p>']))->analyze();
+        $this->assertLessThan(50, $empty['score']);
+        $this->assertContains('Kata kunci utama belum diisi', array_column($empty['checks'], 'label'));
+
+        // Keyword stuffing is penalised.
+        $stuffed = (new \App\Support\SeoAnalyzer(['title' => 'x', 'focus_keyword' => 'bimtek', 'content' => '<p>'.str_repeat('bimtek murah ', 50).'</p>']))->analyze();
+        $this->assertContains('bad', array_column(array_filter($stuffed['checks'], fn ($c) => str_starts_with($c['label'], 'Kata kunci berlebihan')), 'status'));
+
+        // Comma-separated keywords: first is the main keyword, the rest are supporting.
+        $this->assertSame(['laporan keuangan daerah', 'bimtek', 'sipd'], \App\Support\SeoAnalyzer::keywords(' Laporan  Keuangan Daerah, Bimtek; SIPD , ,bimtek'));
+        $multi = (new \App\Support\SeoAnalyzer([
+            'title' => 'Laporan Keuangan Daerah untuk Bendahara',
+            'focus_keyword' => 'Laporan Keuangan Daerah, bendahara, Keuangna',
+            'content' => $content,
+        ]))->analyze();
+        $groups = array_column($multi['checks'], 'group');
+        $this->assertContains('Kata kunci utama: laporan keuangan daerah', $groups);
+        $supporting = collect($multi['checks'])->firstWhere('group', 'Kata kunci pendukung');
+        $this->assertSame('ok', $supporting['status']);
+        $this->assertSame('Kata kunci pendukung muncul di artikel: 1 dari 2', $supporting['label']);
+        $this->assertStringContainsString('"keuangna"', $supporting['hint']);
+
+        // Admin form and list show the score.
+        $this->actingAs(User::first());
+        Livewire::test(\App\Filament\Resources\Posts\Pages\EditPost::class, ['record' => Post::first()->getRouteKey()])
+            ->assertSee('Skor SEO')
+            ->fillForm(['focus_keyword' => 'keuangan daerah'])
+            ->assertSee('Kata kunci ada di judul SEO')
+            ->call('save')->assertHasNoFormErrors();
+        $this->assertSame('keuangan daerah', Post::first()->focus_keyword);
+        Livewire::test(\App\Filament\Resources\Posts\Pages\ListPosts::class)->loadTable()->assertSee('Skor SEO');
+    }
+
+    public function test_role_boundaries_for_participant_data_classes_and_super_admin(): void
+    {
+        $editor = User::create(['name' => 'Ed', 'email' => 'ed2@example.com', 'password' => 'password', 'role' => User::ROLE_EDITOR]);
+        $registrar = User::create(['name' => 'Reg', 'email' => 'reg@example.com', 'password' => 'password', 'role' => User::ROLE_REGISTRAR]);
+        $training = Training::has('registrations')->first();
+        $participant = $training->registrations()->first();
+
+        // Editor: no participant names or finance on the dashboard / class page.
+        $this->actingAs($editor);
+        $this->assertFalse(Widgets\LatestRegistrations::canView());
+        Livewire::test(Widgets\StatsOverview::class)->assertDontSee('Pemasukan')->assertDontSee('Menunggu verifikasi');
+        $this->assertFalse(Resources\Trainings\RelationManagers\RegistrationsRelationManager::canViewForRecord($training, Resources\Trainings\Pages\EditTraining::class));
+        $this->get(Resources\Trainings\TrainingResource::getUrl('edit', ['record' => $training]))->assertOk();
+
+        // Registrar: can open classes read-only and see participants, cannot edit or create.
+        $this->flushSession(); // AuthenticateSession ties a session to one user
+        $this->actingAs($registrar);
+        $this->assertTrue(Widgets\LatestRegistrations::canView());
+        Livewire::test(Widgets\StatsOverview::class)->assertSee('Pemasukan');
+        $this->get(Resources\Trainings\TrainingResource::getUrl('index'))->assertOk();
+        $this->get(Resources\Trainings\TrainingResource::getUrl('view', ['record' => $training]))->assertOk();
+        $this->assertTrue(Resources\Trainings\RelationManagers\RegistrationsRelationManager::canViewForRecord($training, Resources\Trainings\Pages\ViewTraining::class));
+        Livewire::test(Resources\Trainings\RelationManagers\RegistrationsRelationManager::class, ['ownerRecord' => $training, 'pageClass' => Resources\Trainings\Pages\ViewTraining::class])
+            ->loadTable()->assertSee($participant->name);
+        $this->get(Resources\Trainings\TrainingResource::getUrl('edit', ['record' => $training]))->assertForbidden();
+        $this->get(Resources\Trainings\TrainingResource::getUrl('create'))->assertForbidden();
+
+        // Registrar confirms a class formed from a proposed topic.
+        $proposal = Training::forSelection('Bimtek Usulan Pengadaan Darurat', ScheduleDate::open()->first(), Venue::first());
+        $this->assertSame('draft', $proposal->status);
+        Livewire::test(Resources\Trainings\Pages\ListTrainings::class)->loadTable()
+            ->callTableAction('confirm_proposal', $proposal)->assertHasNoErrors();
+        $this->assertSame('published', $proposal->fresh()->status);
+
+        // Super admin cannot lock out the last super admin.
+        $admin = User::where('role', User::ROLE_SUPER_ADMIN)->first();
+        $this->flushSession();
+        $this->actingAs($admin);
+        Livewire::test(Resources\Users\Pages\ManageUsers::class)
+            ->mountTableAction('edit', $admin)
+            ->assertTableActionDataSet(['role' => User::ROLE_SUPER_ADMIN]);
+        try {
+            $admin->update(['role' => User::ROLE_EDITOR]);
+            $this->fail('Last super admin was demoted.');
+        } catch (\Illuminate\Validation\ValidationException) {
+            $this->assertSame(User::ROLE_SUPER_ADMIN, $admin->fresh()->role);
+        }
+        $second = User::create(['name' => 'Super 2', 'email' => 'super2@example.com', 'password' => 'password', 'role' => User::ROLE_SUPER_ADMIN]);
+        $admin->update(['role' => User::ROLE_EDITOR]); // allowed now that another super admin exists
+        $this->assertSame(User::ROLE_EDITOR, $admin->fresh()->role);
+        $this->expectException(\Illuminate\Validation\ValidationException::class);
+        $second->delete();
     }
 
     public function test_editor_cannot_manage_users_or_settings(): void

@@ -25,11 +25,11 @@ class SitemapController extends Controller
             ['loc' => route('faq'), 'priority' => '0.5'],
         ]);
 
-        Training::published()->get(['slug', 'updated_at'])->each(fn ($t) => $urls->push(['loc' => route('trainings.show', $t), 'lastmod' => $t->updated_at, 'priority' => '0.8']));
+        Training::published()->where('noindex', false)->get(['slug', 'updated_at'])->each(fn ($t) => $urls->push(['loc' => route('trainings.show', $t), 'lastmod' => $t->updated_at, 'priority' => '0.8']));
         \App\Models\Topic::active()->get(['slug', 'updated_at'])->each(fn ($t) => $urls->push(['loc' => route('topics.show', $t), 'lastmod' => $t->updated_at, 'priority' => '0.8']));
-        Post::published()->get(['slug', 'updated_at'])->each(fn ($p) => $urls->push(['loc' => route('posts.show', $p), 'lastmod' => $p->updated_at, 'priority' => '0.6']));
+        Post::published()->where('noindex', false)->get(['slug', 'updated_at'])->each(fn ($p) => $urls->push(['loc' => route('posts.show', $p), 'lastmod' => $p->updated_at, 'priority' => '0.6']));
         Gallery::where('is_published', true)->get(['slug', 'updated_at'])->each(fn ($g) => $urls->push(['loc' => route('galleries.show', $g), 'lastmod' => $g->updated_at, 'priority' => '0.4']));
-        Page::where('is_published', true)->get(['slug', 'updated_at'])->each(fn ($p) => $urls->push(['loc' => route('pages.show', $p), 'lastmod' => $p->updated_at, 'priority' => '0.4']));
+        Page::where('is_published', true)->where('noindex', false)->get(['slug', 'updated_at'])->each(fn ($p) => $urls->push(['loc' => route('pages.show', $p), 'lastmod' => $p->updated_at, 'priority' => '0.4']));
 
         return response()->view('sitemap', ['urls' => $urls])->header('Content-Type', 'application/xml');
     }

@@ -2,6 +2,8 @@
 
 namespace App\Filament\Resources\Pages;
 
+use App\Filament\Forms\SeoFields;
+use Filament\Schemas\Components\Section;
 use App\Filament\Concerns\RestrictedByRole;
 use App\Models\Page;
 use BackedEnum;
@@ -45,8 +47,9 @@ class PageResource extends Resource
             TextInput::make('slug')->prefix(url('/halaman').'/')->helperText('Kosongkan untuk otomatis.')->unique(ignoreRecord: true),
             RichEditor::make('content')->label('Isi')->columnSpanFull()
                 ->fileAttachmentsDisk('public')->fileAttachmentsDirectory('pages'),
-            Textarea::make('meta_description')->label('Deskripsi SEO')->rows(2)->maxLength(160)->columnSpanFull(),
             Toggle::make('is_published')->label('Terbit')->default(true),
+            Section::make('SEO')->description('Cara halaman tampil di Google dan saat dibagikan.')->collapsible()->columnSpanFull()
+                ->schema(SeoFields::make('pages.show', 'content', null)),
         ]);
     }
 

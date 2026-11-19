@@ -3,11 +3,13 @@
 @section('title', $topic->title)
 @section('description', $topic->excerpt ?: 'Bimtek '.$topic->title.' – pilih tanggal dan kota pelaksanaan sesuai kebutuhan.')
 
+@section('mobile_cta', route('register.create', ['tema' => $topic->slug]))
+
 @section('content')
 <x-page-header :title="$topic->title" :eyebrow="$topic->type_label.($topic->category ? ' · '.$topic->category->name : '')" :subtitle="$topic->excerpt"
     :crumbs="['Tema' => route('topics.index'), \Illuminate\Support\Str::limit($topic->title, 40) => null]"/>
 
-<div class="container-x grid gap-10 py-10 lg:grid-cols-3">
+<div class="container-x grid gap-8 py-6 sm:py-10 lg:grid-cols-3 lg:gap-10">
     <div class="space-y-8 lg:col-span-2">
         @if($topic->thumbnail_url)
             <img src="{{ $topic->thumbnail_url }}" alt="" class="aspect-[16/8] w-full rounded-2xl object-cover">
@@ -18,20 +20,20 @@
         @endif
 
         @if($topic->materials)
-            <div class="card p-6">
+            <div class="card p-4 sm:p-6">
                 <h2 class="text-lg font-bold">Materi Pokok</h2>
                 <div class="prose prose-slate mt-3 max-w-none prose-li:my-0.5">{!! $topic->materials !!}</div>
             </div>
         @endif
 
         @if($topic->target_participants)
-            <div class="card p-6">
+            <div class="card p-4 sm:p-6">
                 <h2 class="text-lg font-bold">Sasaran Peserta</h2>
                 <p class="mt-2 text-slate-600">{{ $topic->target_participants }}</p>
             </div>
         @endif
 
-        <div class="card p-6">
+        <div class="card p-4 sm:p-6">
             <h2 class="text-lg font-bold">Jadwal Terdekat</h2>
             <p class="mt-1 text-sm text-slate-500">Tema ini dapat diikuti pada seluruh jadwal berikut, di kota mana pun.</p>
             <div class="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
@@ -42,7 +44,7 @@
                     </a>
                 @endforeach
             </div>
-            <a href="{{ route('schedule.index') }}" class="mt-4 inline-block text-sm font-semibold text-brand-700 hover:underline">Lihat jadwal setahun →</a>
+            <a href="{{ route('schedule.index') }}" class="tap mt-4 inline-block text-sm font-semibold text-brand-700 hover:underline">Lihat jadwal setahun</a>
         </div>
     </div>
 
@@ -74,10 +76,10 @@
 </div>
 
 @if($related->isNotEmpty())
-<section class="bg-slate-50/70 py-14">
+<section class="bg-slate-50/70 py-10 sm:py-14">
     <div class="container-x">
         <h2 class="section-title">Tema Terkait</h2>
-        <div class="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        <div class="swipe-row mt-6 sm:mt-8 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3">
             @foreach($related as $r)<x-topic-card :topic="$r"/>@endforeach
         </div>
     </div>

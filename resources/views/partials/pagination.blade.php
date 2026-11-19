@@ -8,7 +8,7 @@
 
         @foreach ($elements as $element)
             @if (is_string($element))
-                <span class="grid size-10 place-items-center text-sm text-slate-400">{{ $element }}</span>
+                <span class="grid size-10 place-items-center text-sm text-slate-500">{{ $element }}</span>
             @endif
             @if (is_array($element))
                 @foreach ($element as $page => $url)

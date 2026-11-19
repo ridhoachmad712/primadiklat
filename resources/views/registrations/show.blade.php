@@ -1,6 +1,7 @@
 @extends('layouts.app')
 
 @section('title', 'Status Pendaftaran '.$registration->code)
+@section('noindex', '1')
 
 @push('head')<meta name="robots" content="noindex">@endpush
 
@@ -53,7 +54,7 @@
                     </thead>
                     <tbody class="divide-y divide-slate-100">
                         @foreach($people as $p)
-                            <tr @class(['text-slate-400 line-through' => $p->status === 'cancelled'])>
+                            <tr @class(['text-slate-500 line-through' => $p->status === 'cancelled'])>
                                 <td class="py-2.5 pr-3"><span class="font-medium text-slate-900">{{ $p->name }}</span>@if($p->position)<span class="block text-xs text-slate-500">{{ $p->position }}</span>@endif</td>
                                 <td class="py-2.5 pr-3 font-mono text-xs">{{ $p->code }}</td>
                                 <td class="py-2.5 pr-3">{{ $p->package ?? '-' }}</td>
@@ -86,7 +87,7 @@
 
     {{-- Price not set yet: admin follows up via WhatsApp --}}
     @if($inv->amount <= 0 && in_array($inv->status, ['unpaid', 'waiting'], true))
-    <div class="card mt-6 flex flex-col gap-4 border-amber-200 bg-amber-50/60 p-6 sm:flex-row sm:items-center">
+    <div class="card mt-6 flex flex-col gap-4 border-amber-200 bg-amber-50/60 p-4 sm:p-6 sm:flex-row sm:items-center">
         <x-heroicon-o-chat-bubble-left-right class="size-9 shrink-0 text-amber-600"/>
         <div class="flex-1 text-sm text-amber-900">
             <p class="font-semibold">Menunggu informasi biaya</p>
@@ -98,7 +99,7 @@
 
     {{-- Payment --}}
     @if($inv->amount > 0 && $inv->status !== 'cancelled')
-    <div class="card mt-6 p-6">
+    <div class="card mt-6 p-4 sm:p-6">
         <h2 class="text-lg font-bold">Pembayaran</h2>
 
         @if($inv->status === 'paid')

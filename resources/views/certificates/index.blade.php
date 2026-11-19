@@ -1,6 +1,7 @@
 @extends('layouts.app')
 
 @section('title', 'Cek Sertifikat')
+@if(request()->filled('kode')) @section('noindex', '1') @endif
 @section('description', 'Cek keabsahan dan unduh sertifikat peserta bimtek dan diklat Prima Diklat.')
 
 @section('content')

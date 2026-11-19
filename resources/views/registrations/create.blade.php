@@ -7,7 +7,7 @@
 <x-page-header title="Formulir Pendaftaran" eyebrow="Daftar Online" :subtitle="$t->title"
     :crumbs="['Jadwal' => route('trainings.index'), \Illuminate\Support\Str::limit($t->title, 40) => route('trainings.show', $t), 'Daftar' => null]"/>
 
-<div class="container-x grid gap-10 py-10 lg:grid-cols-3">
+<div class="container-x grid gap-8 py-6 sm:py-10 lg:grid-cols-3 lg:gap-10">
     <div class="lg:col-span-2">
         @if(! $t->can_register)
             <div class="rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-800">
@@ -28,7 +28,7 @@
             @include('registrations.partials.people')
 
             @if($t->prices)
-            <fieldset class="card p-6">
+            <fieldset class="card p-4 sm:p-6">
                 <h2 class="text-lg font-bold">Pilih Paket</h2>
                 <div class="mt-5 grid gap-3 sm:grid-cols-2">
                     @foreach($t->prices as $i => $p)

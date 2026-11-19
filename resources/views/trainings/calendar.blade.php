@@ -64,13 +64,13 @@
             <ul class="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
                 @foreach($slotsInMonth as $d)
                     <li>
-                        <a href="{{ $d->is_open ? route('register.create', ['tanggal' => $d->start_date->toDateString()]) : route('schedule.index') }}" @class(['card flex items-center gap-4 p-4', 'hover:border-brand-200 hover:bg-brand-50/40' => $d->is_open, 'opacity-60' => ! $d->is_open])>
+                        <a href="{{ $d->is_open ? route('register.create', ['tanggal' => $d->start_date->toDateString()]) : route('schedule.index') }}" @class(['card flex items-center gap-4 p-4', 'hover:border-brand-200 hover:bg-brand-50/40' => $d->is_open, 'bg-slate-50' => ! $d->is_open])>
                             <x-heroicon-o-calendar-days class="size-6 shrink-0 text-brand-600"/>
                             <span class="flex-1">
                                 <span class="block font-semibold text-slate-900">Jadwal Bimtek · {{ $d->label }}</span>
                                 <span class="block text-xs text-slate-500">{{ $d->days_label }} · semua tema & kota</span>
                             </span>
-                            <span class="text-xs font-semibold {{ $d->is_open ? 'text-brand-700' : 'text-slate-400' }}">{{ $d->is_open ? 'Daftar' : 'Ditutup' }}</span>
+                            <span class="text-xs font-semibold {{ $d->is_open ? 'text-brand-700' : 'text-slate-500' }}">{{ $d->is_open ? 'Daftar' : 'Ditutup' }}</span>
                         </a>
                     </li>
                 @endforeach
