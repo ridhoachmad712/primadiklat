@@ -568,7 +568,7 @@ class SiteTest extends TestCase
         $this->get(Resources\Trainings\TrainingResource::getUrl('view', ['record' => $training]))->assertOk();
         $this->assertTrue(Resources\Trainings\RelationManagers\RegistrationsRelationManager::canViewForRecord($training, Resources\Trainings\Pages\ViewTraining::class));
         Livewire::test(Resources\Trainings\RelationManagers\RegistrationsRelationManager::class, ['ownerRecord' => $training, 'pageClass' => Resources\Trainings\Pages\ViewTraining::class])
-            ->loadTable()->assertSee($participant->name);
+            ->loadTable()->searchTable($participant->name)->assertCanSeeTableRecords([$participant]);
         $this->get(Resources\Trainings\TrainingResource::getUrl('edit', ['record' => $training]))->assertForbidden();
         $this->get(Resources\Trainings\TrainingResource::getUrl('create'))->assertForbidden();
 
