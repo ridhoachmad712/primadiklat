@@ -11,7 +11,9 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        //
+        // Hosting sits behind a CDN/reverse proxy (Hostinger hcdn): trust its X-Forwarded-* headers so
+        // requests are seen as HTTPS and generated URLs, cookies and redirects use https://.
+        $middleware->trustProxies(at: '*');
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         // Old URLs of renamed articles, pages, etc. answer with a permanent redirect instead of 404.
