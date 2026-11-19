@@ -9,6 +9,12 @@ class RegistrationsChart extends ChartWidget
 {
     protected static ?int $sort = 2;
 
+    /** Operational figures are not shown to writers (Penulis). */
+    public static function canView(): bool
+    {
+        return ! auth()->user()?->isWriter();
+    }
+
     protected ?string $heading = 'Pendaftar per bulan';
 
     protected ?string $description = '12 bulan terakhir';

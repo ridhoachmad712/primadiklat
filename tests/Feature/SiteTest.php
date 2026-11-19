@@ -599,6 +599,59 @@ class SiteTest extends TestCase
         $second->delete();
     }
 
+    public function test_writer_role_drafts_only_own_articles(): void
+    {
+        $writer = User::create(['name' => 'Penulis', 'email' => 'penulis@example.com', 'password' => 'password', 'role' => User::ROLE_WRITER]);
+        $editor = User::create(['name' => 'Editor', 'email' => 'editor2@example.com', 'password' => 'password', 'role' => User::ROLE_EDITOR]);
+        $othersPost = Post::first();
+
+        $this->actingAs($writer);
+
+        // Only the article menu; nothing operational.
+        $this->get(Resources\Posts\PostResource::getUrl('index'))->assertOk();
+        $this->get(Resources\Posts\PostResource::getUrl('create'))->assertOk();
+        foreach ([Resources\Trainings\TrainingResource::class, Resources\Registrations\RegistrationResource::class, Resources\Invoices\InvoiceResource::class, Resources\Topics\TopicResource::class, Resources\Pages\PageResource::class] as $resource) {
+            $this->get($resource::getUrl('index'))->assertForbidden();
+        }
+        $this->get(\App\Filament\Pages\Settings::getUrl())->assertForbidden();
+        $this->assertFalse(Widgets\StatsOverview::canView());
+        $this->assertFalse(Widgets\RegistrationsChart::canView());
+        $this->assertFalse(Widgets\UpcomingTrainings::canView());
+
+        // Cannot open other people's articles; does not see them in the list.
+        $this->get(Resources\Posts\PostResource::getUrl('edit', ['record' => $othersPost]))->assertNotFound();
+        Livewire::test(Resources\Posts\Pages\ListPosts::class)->loadTable()->assertCanNotSeeTableRecords([$othersPost]);
+
+        // Writes a draft: even if "publish" is forced, it stays unpublished.
+        Livewire::test(Resources\Posts\Pages\CreatePost::class)
+            ->fillForm(['title' => 'Catatan Lapangan Bimtek Keuangan Desa', 'slug' => 'catatan-lapangan-bimtek-keuangan-desa', 'category' => 'artikel', 'content' => '<p>Isi artikel.</p>'])
+            ->call('create')->assertHasNoFormErrors();
+        $draft = Post::where('slug', 'catatan-lapangan-bimtek-keuangan-desa')->firstOrFail();
+        $this->assertSame($writer->id, $draft->user_id);
+        $this->assertFalse($draft->is_published);
+        $draft->update(['is_published' => true]);
+        $this->assertFalse($draft->fresh()->is_published);
+        $this->get(route('posts.show', $draft))->assertOk()->assertSee('Pratinjau draf'); // own preview
+        $this->get(Resources\Posts\PostResource::getUrl('edit', ['record' => $draft]))->assertOk();
+        $other = User::create(['name' => 'Penulis 2', 'email' => 'penulis2@example.com', 'password' => 'password', 'role' => User::ROLE_WRITER]);
+        $this->actingAs($other)->get(route('posts.show', $draft))->assertNotFound();
+        auth()->logout();
+        $this->get(route('posts.show', $draft))->assertNotFound(); // guests never see drafts
+
+        // Editor sees it in the review queue and publishes it.
+        $this->flushSession();
+        $this->actingAs($editor);
+        $this->assertSame('1', Resources\Posts\PostResource::getNavigationBadge());
+        $draft->update(['is_published' => true, 'published_at' => now()->subMinute()]);
+        $this->assertTrue($draft->fresh()->is_published);
+        $this->get(route('posts.show', $draft))->assertOk();
+
+        // Once published, the writer can no longer change it.
+        $this->flushSession();
+        $this->actingAs($writer);
+        $this->get(Resources\Posts\PostResource::getUrl('edit', ['record' => $draft->fresh()]))->assertForbidden();
+    }
+
     public function test_editor_cannot_manage_users_or_settings(): void
     {
         $editor = User::create(['name' => 'Ed', 'email' => 'ed@example.com', 'password' => 'password', 'role' => User::ROLE_EDITOR]);

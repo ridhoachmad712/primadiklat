@@ -12,6 +12,12 @@ class UpcomingTrainings extends TableWidget
 {
     protected static ?int $sort = 3;
 
+    /** Operational figures are not shown to writers (Penulis). */
+    public static function canView(): bool
+    {
+        return ! auth()->user()?->isWriter();
+    }
+
     protected static ?string $heading = 'Kegiatan terdekat';
 
     protected int|string|array $columnSpan = 1;

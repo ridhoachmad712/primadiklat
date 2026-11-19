@@ -37,7 +37,7 @@ Website informasi dan pendaftaran Bimtek & Diklat, dibangun dengan **Laravel 12*
 - Kategori, Berita, Galeri, Testimoni, Mitra, FAQ, Halaman Statis
 - Pesan masuk: permintaan in-house dan pesan kontak
 - Pengaturan situs: identitas, beranda, kontak, media sosial, rekening, dan penanda tangan undangan
-- Hak akses: **Super Admin** (semua menu, akun admin, pengaturan), **Editor Konten** (kegiatan, jadwal, tema, konten website; tidak melihat data peserta maupun pemasukan), **Admin Pendaftaran** (pendaftar, tagihan, pesan masuk; dapat melihat kelas beserta pesertanya dan mengonfirmasi kelas dari tema usulan, tetapi tidak mengubah isi kelas). Peran akun sendiri tidak dapat diubah, dan Super Admin aktif terakhir tidak dapat diturunkan, dinonaktifkan, atau dihapus
+- Hak akses: **Super Admin** (semua menu, akun admin, pengaturan), **Editor Konten** (kegiatan, jadwal, tema, konten website; tidak melihat data peserta maupun pemasukan), **Admin Pendaftaran** (pendaftar, tagihan, pesan masuk; dapat melihat kelas beserta pesertanya dan mengonfirmasi kelas dari tema usulan, tetapi tidak mengubah isi kelas), **Penulis** (hanya menu Berita & Artikel: menulis dan mengubah draf miliknya sendiri, bisa pratinjau, tidak bisa menerbitkan; Editor melihat jumlah draf yang menunggu di menu dan menerbitkannya). Peran akun sendiri tidak dapat diubah, dan Super Admin aktif terakhir tidak dapat diturunkan, dinonaktifkan, atau dihapus
 
 ## Instalasi lokal
 

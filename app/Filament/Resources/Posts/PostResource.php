@@ -32,14 +32,66 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Columns\ToggleColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use App\Models\User;
+use Illuminate\Auth\Access\Response;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
 use UnitEnum;
 
 class PostResource extends Resource
 {
-    use RestrictedByRole;
+    use RestrictedByRole {
+        getAuthorizationResponse as roleAuthorizationResponse;
+    }
 
     protected static ?string $model = Post::class;
+
+    /**
+     * Writers (Penulis) work only on their own unpublished drafts and cannot publish;
+     * Editors and Super Admins review and publish everything.
+     */
+    public static function getAuthorizationResponse(string $action, ?Model $record = null): Response
+    {
+        if (! static::isWriter()) {
+            return static::roleAuthorizationResponse($action, $record);
+        }
+
+        $ownDraft = $record instanceof Post && $record->user_id === auth()->id() && ! $record->is_published;
+
+        return match (true) {
+            in_array($action, ['viewAny', 'create'], true) => Response::allow(),
+            in_array($action, ['view', 'update', 'delete'], true) && $ownDraft => Response::allow(),
+            default => Response::deny('Penulis hanya dapat mengubah draf artikel miliknya yang belum terbit.'),
+        };
+    }
+
+    public static function isWriter(): bool
+    {
+        return (bool) auth()->user()?->isWriter();
+    }
+
+    /** Writers only ever see their own articles. */
+    public static function getEloquentQuery(): Builder
+    {
+        return parent::getEloquentQuery()->when(static::isWriter(), fn (Builder $q) => $q->where('user_id', auth()->id()));
+    }
+
+    /** Editors see how many articles are waiting to be reviewed and published. */
+    public static function getNavigationBadge(): ?string
+    {
+        if (static::isWriter()) {
+            return null;
+        }
+        $pending = Post::where('is_published', false)->whereHas('author', fn ($q) => $q->where('role', User::ROLE_WRITER))->count();
+
+        return $pending ? (string) $pending : null;
+    }
+
+    public static function getNavigationBadgeTooltip(): ?string
+    {
+        return 'Artikel dari Penulis yang menunggu ditinjau';
+    }
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedNewspaper;
 
@@ -80,7 +132,10 @@ class PostResource extends Resource
                 ]),
                 Group::make()->schema([
                     Section::make('Publikasi')->schema([
-                        Toggle::make('is_published')->label('Terbitkan')->default(true),
+                        Toggle::make('is_published')->label('Terbitkan')
+                            ->default(fn () => ! static::isWriter())
+                            ->disabled(fn () => static::isWriter())
+                            ->helperText(fn () => static::isWriter() ? 'Artikel Anda disimpan sebagai draf dan ditinjau Editor sebelum terbit.' : null),
                         DateTimePicker::make('published_at')->label('Tanggal terbit')->default(now())->native(false),
                         Select::make('category')->label('Kategori')->options(Post::CATEGORIES)->default('berita')->native(false),
                     ]),
@@ -107,13 +162,19 @@ class PostResource extends Resource
                     ->state(fn (Post $r) => SeoAnalyzer::forPost($r)['score'])
                     ->color(fn (int $state) => match (SeoAnalyzer::level($state)) { 'good' => 'success', 'ok' => 'warning', default => 'danger' })
                     ->tooltip(fn (Post $r) => $r->focus_keyword ? 'Kata kunci: '.$r->focus_keyword : 'Kata kunci utama belum diisi'),
+                TextColumn::make('author.name')->label('Penulis')->placeholder('-')->toggleable()
+                    ->hidden(fn () => static::isWriter()),
                 TextColumn::make('published_at')->label('Terbit')->date('d M Y')->sortable(),
                 TextColumn::make('views')->label('Dilihat')->numeric()->sortable(),
-                ToggleColumn::make('is_published')->label('Terbit'),
+                ToggleColumn::make('is_published')->label('Terbit')->disabled(fn () => static::isWriter()),
             ])
-            ->filters([SelectFilter::make('category')->label('Kategori')->options(Post::CATEGORIES)])
+            ->filters([
+                SelectFilter::make('category')->label('Kategori')->options(Post::CATEGORIES),
+                SelectFilter::make('is_published')->label('Status')->options(['0' => 'Draf / menunggu terbit', '1' => 'Terbit']),
+                SelectFilter::make('user_id')->label('Penulis')->relationship('author', 'name')->hidden(fn () => static::isWriter()),
+            ])
             ->recordActions([ActionGroup::make([EditAction::make(), DeleteAction::make()])])
-            ->toolbarActions([BulkActionGroup::make([DeleteBulkAction::make()])]);
+            ->toolbarActions([BulkActionGroup::make([DeleteBulkAction::make()])->hidden(fn () => static::isWriter())]);
     }
 
     public static function getPages(): array

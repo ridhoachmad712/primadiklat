@@ -33,6 +33,16 @@ class Post extends Model
         'noindex' => 'boolean',
     ];
 
+    /** A writer (Penulis) can never publish: their saves always stay drafts until an Editor publishes. */
+    protected static function booted(): void
+    {
+        static::saving(function (Post $post) {
+            if (auth()->user()?->isWriter()) {
+                $post->is_published = false;
+            }
+        });
+    }
+
     public function author(): BelongsTo
     {
         return $this->belongsTo(User::class, 'user_id');

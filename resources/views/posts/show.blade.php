@@ -4,7 +4,7 @@
 @section('description', $post->meta_description ?: $post->summary)
 @section('og_type', 'article')
 @if($post->thumbnail_url) @section('og_image', $post->thumbnail_url) @section('og_image_alt', $post->image_alt ?: $post->title) @endif
-@if($post->noindex) @section('noindex', '1') @endif
+@if($post->noindex || ($preview ?? false)) @section('noindex', '1') @endif
 
 @push('head')
     @php
@@ -35,6 +35,11 @@
 @endpush
 
 @section('content')
+@if($preview ?? false)
+    <div class="border-b border-amber-200 bg-amber-50 text-amber-900">
+        <p class="container-x py-3 text-sm"><strong>Pratinjau draf.</strong> Artikel ini belum terbit dan hanya bisa dilihat oleh penulisnya serta Editor.</p>
+    </div>
+@endif
 <article>
     <header class="container-x max-w-3xl pt-12 pb-8">
         <nav class="mb-6 flex flex-wrap items-center gap-1.5 text-xs text-slate-500" aria-label="Breadcrumb">

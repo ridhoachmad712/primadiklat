@@ -12,6 +12,11 @@ class EditPost extends EditRecord
 
     protected function getHeaderActions(): array
     {
-        return [DeleteAction::make()];
+        return [
+            \Filament\Actions\Action::make('preview')->color('gray')->icon(\Filament\Support\Icons\Heroicon::OutlinedEye)
+                ->label(fn () => $this->record->is_published ? 'Lihat di website' : 'Pratinjau')
+                ->url(fn () => route('posts.show', $this->record), shouldOpenInNewTab: true),
+            DeleteAction::make(),
+        ];
     }
 }

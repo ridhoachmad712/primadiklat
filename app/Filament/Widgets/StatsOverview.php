@@ -14,6 +14,12 @@ class StatsOverview extends StatsOverviewWidget
 {
     protected static ?int $sort = 1;
 
+    /** Operational figures are not shown to writers (Penulis). */
+    public static function canView(): bool
+    {
+        return ! auth()->user()?->isWriter();
+    }
+
     protected ?string $pollingInterval = null;
 
     protected function getStats(): array

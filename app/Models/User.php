@@ -21,10 +21,14 @@ class User extends Authenticatable implements FilamentUser
 
     public const ROLE_REGISTRAR = 'registrar';
 
+    /** Writes news/articles as drafts; an Editor or Super Admin publishes them. */
+    public const ROLE_WRITER = 'writer';
+
     public const ROLES = [
         self::ROLE_SUPER_ADMIN => 'Super Admin',
         self::ROLE_EDITOR => 'Editor Konten',
         self::ROLE_REGISTRAR => 'Admin Pendaftaran',
+        self::ROLE_WRITER => 'Penulis',
     ];
 
     protected $fillable = ['name', 'email', 'password', 'role', 'is_active'];
@@ -76,6 +80,11 @@ class User extends Authenticatable implements FilamentUser
     public function isSuperAdmin(): bool
     {
         return $this->role === self::ROLE_SUPER_ADMIN;
+    }
+
+    public function isWriter(): bool
+    {
+        return $this->role === self::ROLE_WRITER;
     }
 
     /** Super admin can do everything; others are limited to their area. */

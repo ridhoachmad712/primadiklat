@@ -51,7 +51,7 @@ class UserResource extends Resource
                 ->disabled(fn (?User $record) => $record?->is(auth()->user()))
                 ->helperText(fn (?User $record) => $record?->is(auth()->user())
                     ? 'Peran akun Anda sendiri tidak dapat diubah. Minta Super Admin lain bila perlu.'
-                    : 'Editor Konten: kegiatan, jadwal & konten website. Admin Pendaftaran: pendaftar, tagihan, pesan masuk, serta melihat & mengonfirmasi kelas.'),
+                    : 'Editor Konten: kegiatan, jadwal & konten website. Admin Pendaftaran: pendaftar, tagihan, pesan masuk, serta melihat & mengonfirmasi kelas. Penulis: menulis berita/artikel sebagai draf, diterbitkan oleh Editor.'),
             TextInput::make('password')->password()->revealable()
                 ->required(fn (string $operation) => $operation === 'create')
                 ->dehydrated(fn (?string $state) => filled($state))

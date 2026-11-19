@@ -22,11 +22,18 @@ class PostController extends Controller
 
     public function show(Post $post)
     {
-        abort_unless(($post->is_published && (! $post->published_at || $post->published_at->isPast())) || auth()->check(), 404);
-        $post->increment('views');
+        $isLive = $post->is_published && (! $post->published_at || $post->published_at->isPast());
+        if (! $isLive) {
+            // Draft preview: editors/super admins, or the writer who owns it. Everyone else gets 404.
+            $user = auth()->user();
+            abort_unless($user && ($user->hasRole(\App\Models\User::ROLE_EDITOR) || $post->user_id === $user->id), 404);
+        } else {
+            $post->increment('views');
+        }
 
         return view('posts.show', [
             'post' => $post,
+            'preview' => ! $isLive,
             'latest' => Post::published()->whereKeyNot($post->id)->take(4)->get(),
         ]);
     }
