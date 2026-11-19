@@ -30,6 +30,7 @@ class AdminPanelProvider extends PanelProvider
             ->id('admin')
             ->path('admin')
             ->login()
+            ->passwordReset()
             ->profile(isSimple: false)
             ->brandName('Prima Diklat')
             ->brandLogo(fn () => view('filament.brand'))
